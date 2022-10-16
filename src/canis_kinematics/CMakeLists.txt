@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  nav_msgs
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -23,6 +25,8 @@ find_package(catkin REQUIRED COMPONENTS
 # catkin_python_setup()
 
 ################################################
+
+
 ## Declare ROS messages, services and actions ##
 ################################################
 
@@ -68,10 +72,6 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -105,7 +105,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES canis_kinematics
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs nav_msgs geometry_msgs
 #  DEPENDS system_lib
 )
 
@@ -204,3 +204,5 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+add_executable(leg_inverse_kinematics src/leg_inverse_kinematics.cpp src/leg_inverse_kinematics_node.cpp)
+target_link_libraries(leg_inverse_kinematics ${catkin_LIBRARIES})
