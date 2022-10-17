@@ -73,7 +73,7 @@ void LegInverseKinematicsProcessor::Superior_Right_Leg_Pos_CB(const geometry_msg
 
     double arm_extensor_pos = -(a1 + a2);
 
-    double shoulder_abductor_pos = (-(g1 + g2)) + M_PI;
+    double shoulder_abductor_pos = -(g1 + g2) + M_PI;
 
     superior_right_shoulder_msg.data = shoulder_abductor_pos;
     superior_right_arm_msg.data = arm_extensor_pos;
@@ -161,7 +161,7 @@ void LegInverseKinematicsProcessor::Inferior_Right_Leg_Pos_CB(const geometry_msg
 void LegInverseKinematicsProcessor::Inferior_Left_Leg_Pos_CB(const geometry_msgs::PointStamped::ConstPtr& Point) {
 
     double inferior_left_x = Point->point.x;
-    double inferior_left_y = Point->point.y;
+    double inferior_left_y = -Point->point.y;
     double inferior_left_z = Point->point.z;
 
     double dyz = sqrt(inferior_left_y * inferior_left_y + inferior_left_z * inferior_left_z);
