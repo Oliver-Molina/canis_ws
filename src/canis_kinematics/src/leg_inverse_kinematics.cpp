@@ -47,7 +47,7 @@ void LegInverseKinematicsProcessor::Superior_Right_Leg_Pos_CB(const geometry_msg
     // Example Desmos Graph: https://www.desmos.com/calculator/m8do1lkiop
     // Motor positions are stored in extern vars at bottom
 
-    geometry_msgs::Point point = Point->point;
+    //geometry_msgs::Point point = Point->point;
 
     double superior_right_x = Point->point.x;
     double superior_right_y = Point->point.y;
