@@ -2,6 +2,7 @@
 
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/String.h>
 
 #include <tf/transform_datatypes.h>
 #include <tf/message_filter.h>
@@ -57,6 +58,8 @@ class LegInverseKinematicsProcessor
         std_msgs::Float64 inferior_right_forearm_msg;
         std_msgs::Float64 inferior_left_forearm_msg;
 
+        std_msgs::String debug_msg;
+
 
         /**
          * Publishers and subscribers
@@ -75,6 +78,8 @@ class LegInverseKinematicsProcessor
         ros::Publisher superior_left_forearm_pub;
         ros::Publisher inferior_right_forearm_pub;
         ros::Publisher inferior_left_forearm_pub;
+
+        ros::Publisher debug_pub;
 
         ros::Subscriber SuperiorRightSub;
         ros::Subscriber SuperiorLeftSub;

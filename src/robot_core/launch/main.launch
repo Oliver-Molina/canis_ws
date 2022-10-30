@@ -2,5 +2,5 @@
 <launch>
 
     <include file="$(find robot_core)/launch/kinematics.launch"/>
-    <!--include file="$(find robot_core)/launch/sensors.launch"/-->
+    <include file="$(find robot_core)/launch/sensors.launch"/>
 </launch>
