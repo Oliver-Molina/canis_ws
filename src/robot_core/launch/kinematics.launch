@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <group>
-        <node pkg="canis_kinematics" type="leg_inverse_kinematics" name="leg_inverse_kinematics_node"/>
+        <node pkg="canis_kinematics_lut" type="leg_inverse_kinematics_lut" name="leg_inverse_kinematics_lut_node"/>
     </group>
 </launch>
