@@ -26,7 +26,7 @@ int main(int argc, char** argv){
     ros::init(argc, argv, "normalize_tf_node");
     
     ros::NodeHandle node;
-    ros::Subscriber sub = node.subscribe("sensors/imu", 10, &Imu_CB);
+    ros::Subscriber sub = node.subscribe("/sensors/imu", 10, &Imu_CB);
 
     ros::spin();
     return 0;
