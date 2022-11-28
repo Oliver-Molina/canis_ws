@@ -6,6 +6,8 @@
 #include <twist_msgs/TwistStamped.h>
 #include <geometry_msgs/PointStamped.h>
 
+enum State {Halt, IL_Free, SL_Free, IR_Free, SR_Free};
+
 class LocomotionProcessor
 {
     public:
@@ -25,6 +27,8 @@ class LocomotionProcessor
         void Command_IL();
         void Init();
         void Pos_Update(const ros::TimerEvent& event);
+        void Stablity(int leg_free);
+
 
 
     private:
@@ -81,6 +85,8 @@ class LocomotionProcessor
 
         double walking_z;
 
+        double safe_bound;
+
             // Note, these are relative to COM
         double sr_x;
         double sr_y;
@@ -106,5 +112,7 @@ class LocomotionProcessor
 
         double il_l;
 
-        double moving;
+        bool moving;
+
+        State state;
 };

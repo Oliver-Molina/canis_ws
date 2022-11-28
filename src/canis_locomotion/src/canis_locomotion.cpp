@@ -30,6 +30,8 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
 
     operating_freq = 30; // TBD, more testing
 
+    safe_bound = 0.15;
+
     // #### State Variables ####
     timer = nh.createTimer(ros::Duration(1.0 / operating_freq), LocomotionProcessor::Pos_Update);
 
@@ -65,6 +67,8 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
     il_l = 0;
 
     moving = 0;
+
+    state = Halt;
 }
 
 void LocomotionProcessor::Twist_CB(const twist_msgs::TwistStamped::ConstPtr& twist) {
@@ -199,5 +203,40 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
     sl_y += sl_y_new;
     ir_y += ir_y_new;
     il_y += il_y_new;
+
+    switch(state)
+    {
+        case State::Halt: 
+            break;
+
+        case State::IL_Free: 
+            if (LocomotionProcessor::IL_Stable()) {
+
+            }
+            break;
+
+        case State::SL_Free: 
+            if (LocomotionProcessor::SL_Stable()) {
+
+            }
+            break;
+
+        case State::IR_Free: 
+            if (LocomotionProcessor::IR_Stable()) {
+
+            }
+            break;
+
+        case State::SR_Free: 
+            if (LocomotionProcessor::SR_Stable()) {
+
+            }
+            break;
+    }
 }
+
+void LocomotionProcessor::Stablity(int leg_free) {
+
+}
+
 
