@@ -6,7 +6,7 @@
 #include <twist_msgs/TwistStamped.h>
 #include <geometry_msgs/PointStamped.h>
 
-enum State {Halt, IL_Free, SL_Free, IR_Free, SR_Free};
+enum State {Halt, IL_Next, IL_Step, SL_Next, SR_Step, IR_Next, IR_Step, SR_Next, SR_Step};
 
 class LocomotionProcessor
 {
@@ -27,7 +27,8 @@ class LocomotionProcessor
         void Command_IL();
         void Init();
         void Pos_Update(const ros::TimerEvent& event);
-        void Stablity(int leg_free);
+        bool Stablity();
+        bool Safe();
 
 
 
@@ -45,6 +46,8 @@ class LocomotionProcessor
         double shoulder_length;
         double arm_length;
         double forearm_length;
+
+        double max_extend;
 
         double body_width;
         double center_to_front;
@@ -100,7 +103,8 @@ class LocomotionProcessor
 
         double sl_l;
 
-        double ir_x;
+        double ir_x;    time_steps_per_step = 5;
+    current_step = 0;
         double ir_y;
         double ir_z;
 

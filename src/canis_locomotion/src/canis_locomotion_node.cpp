@@ -5,7 +5,7 @@
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "leg_innverse_kinematics_node");
+    ros::init(argc, argv, "locomotion_node");
 
     ros::NodeHandle nh_private("~");
     //tf::TransformListener tf(ros::Duration(10));
