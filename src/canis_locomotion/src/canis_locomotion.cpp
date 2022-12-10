@@ -21,13 +21,12 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
 
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
 
+    timer = nh.createTimer(ros::Duration(1.0 / operating_freq), LocomotionProcessor::Pos_Update);
+
     // #### Robot Params ####
     shoulder_length = 0.055;
     arm_length = 0.105;
     forearm_length = 0.136;
-
-    max_extend = sqrt(shoulder_length * shoulder_length + (arm_length + forearm_length) * (arm_length + forearm_length));
-    max_tangential = sqrt(max_extend * max_extend - walking_z * walking_z);
 
     body_width = 0.2;
     center_to_front = 0.1;
@@ -35,23 +34,25 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
 
     operating_freq = 30; // TBD, more testing
 
+    // Shoulder to Foot Max Extension
+    max_extend = sqrt(shoulder_length * shoulder_length + (arm_length + forearm_length) * (arm_length + forearm_length));
+    // Max Extension Tangential to the Floor
+    max_tangential = sqrt(max_extend * max_extend - walking_z * walking_z);
+    // Boundary for safe balancing triangle
     safe_bound = 0.03;
 
     // #### State Variables ####
-    timer = nh.createTimer(ros::Duration(1.0 / operating_freq), LocomotionProcessor::Pos_Update);
-
     x_vel = 0;
     y_vel = 0;
     theta_vel = 0;
 
     walking_z = 0.1;
 
-        // Note, these are relative to COM
-    sr_x = 0;
-    sr_y = 0;
-    sr_z = 0;
+    sr_x = 0; // Superior Right X (Relative to Center of Mass)
+    sr_y = 0; // Superior Right Y (Relative to Center of Mass)
+    sr_z = 0; // Superior Right Z (Relative to Center of Mass)
 
-    sr_l = 0;
+    sr_l = 0; // Superior Right Tangential XY Extention (Relative to SHOULDER)
 
     sl_x = 0;
     sl_y = 0;
@@ -70,6 +71,22 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
     il_z = 0;
 
     il_l = 0;
+
+    sr_cx = 0;
+    sr_cy = 0; 
+    sr_cz = 0; 
+
+    sl_cx = 0;
+    sl_cy = 0;
+    sl_cz = 0;
+
+    ir_cx = 0;
+    ir_cy = 0;
+    ir_cz = 0;
+
+    il_cx = 0;
+    il_cy = 0;
+    il_cz = 0;
 
     moving = 0;
 
@@ -286,6 +303,8 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
         sl_y += sl_y_new;
         ir_y += ir_y_new;
         il_y += il_y_new;   
+
+        // Z only changes on state transition
     }
 
 
@@ -299,17 +318,48 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
 bool LocomotionProcessor::Stable() {
     switch(state) { 
             case State::Halt:     // nop
-                return true;
+                return true; // Should I have this just return true, or ony after completely reset to 
 
-            case State::IL_Free:  // il step
-                if () return true;
-                else return false;
+            //  x   x
+            //  
+            //  
+            //      x
+            case State::IL_Free:  // Li, is sl, Lj is sr, Lk ir
+                double Lix = sr_x;
+                double Ljx = sl_x;
+                double Lkx = ir_x;
+                //il_x;
+
+                double Liy = sr_y;
+                double Ljy = sl_y;
+                double Lky = ir_y;
+                //il_y; 
+                
+                il_cx = (sr_x + sl_x + 
+
+
+                return (a > b);
                 break;
                     
             case State::IL_Step:  // il step
                 break;
 
+            //  x   x
+            //  
+            //  
+            //      x
             case State::SL_Free:  // sl step
+                double Lix = sr_x;
+                double Ljx = sl_x;
+                double Lkx = ir_x;
+                il_x;
+
+                double Liy = sr_y;
+                double Ljy = sl_y;
+                double Lky = ir_y;
+                il_y; 
+
+                return (a > b);
 
                 break;
 
@@ -317,17 +367,45 @@ bool LocomotionProcessor::Stable() {
 
                 break;
 
+            //  x   x
+            //  
+            //  
+            //      x
             case State::IR_Free:  // ir step
+                double Lix = sr_x;
+                double Ljx = sl_x;
+                double Lkx = ir_x;
+                il_x;
 
+                double Liy = sr_y;
+                double Ljy = sl_y;
+                double Lky = ir_y;
+                il_y; 
+
+                return (a > b);
                 break;
             
             case State::IR_Step:  // ir step
 
                 break;
 
+            //  x   x
+            //  
+            //  
+            //      x
             case State::SR_Free:  // sr step
+                double Lix = sr_x;
+                double Ljx = sl_x;
+                double Lkx = ir_x;
+                il_x;
 
-                break;
+                double Liy = sr_y;
+                double Ljy = sl_y;
+                double Lky = ir_y;
+                il_y; 
+
+                return (a > b);
+                break  ;
             
             case State::SR_Step:  // sr step
             
