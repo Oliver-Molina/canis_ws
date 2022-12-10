@@ -103,8 +103,7 @@ class LocomotionProcessor
 
         double sl_l;
 
-        double ir_x;    time_steps_per_step = 5;
-    current_step = 0;
+        double ir_x;   
         double ir_y;
         double ir_z;
 
@@ -116,7 +115,25 @@ class LocomotionProcessor
 
         double il_l;
 
+        double sr_cx;
+        double sr_cy; 
+        double sr_cz; 
+
+        double sl_cx;
+        double sl_cy;
+        double sl_cz;
+
+        double ir_cx;
+        double ir_cy;
+        double ir_cz;
+
+        double il_cx;
+        double il_cy;
+        double il_cz;
+
         bool moving;
 
         State state;
 };
+
+double safe_inter(double xa, double xb, double ya, double yb);
