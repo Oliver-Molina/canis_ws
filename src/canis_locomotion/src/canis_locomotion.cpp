@@ -39,7 +39,7 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
     // Max Extension Tangential to the Floor
     max_tangential = sqrt(max_extend * max_extend - walking_z * walking_z);
     // Boundary for safe balancing triangle
-    safe_bound = 0.03;
+    safe_bound_triangle = 0.03; // This is a percentage
 
     // #### State Variables ####
     x_vel = 0;
@@ -335,32 +335,64 @@ bool LocomotionProcessor::Stable() {
                 double Lky = ir_y;
                 //il_y; 
                 
-                il_cx = (sr_x + sl_x + 
+                il_cx = (Lix + Ljx + Lkx) * 0.333333;
+                il_cy = (Liy + Ljy + Lky) * 0.333333;
 
+                double Lcx = il_cx;
+                double Lcy = il_cy;
 
-                return (a > b);
+                double xi = (1 - safe_bound_triangle) * Lix + safe_bound_triangle * Lcx;
+                double yi = (1 - safe_bound_triangle) * Liy + safe_bound_triangle * Lcy;
+
+                double xj = (1 - safe_bound_triangle) * Ljx + safe_bound_triangle * Lcx;
+                double yj = (1 - safe_bound_triangle) * Ljy + safe_bound_triangle * Lcy;
+
+                double xk = (1 - safe_bound_triangle) * Lkx + safe_bound_triangle * Lcx;
+                double yk = (1 - safe_bound_triangle) * Lky + safe_bound_triangle * Lcy;
+
+                double d1 = safe_inter(xi, xj, yi, yj);
+                double d2 = safe_inter(xj, xk, yj, yk);
+                double d3 = safe_inter(xk, xi, yk, yi);
+
+                return ((d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0));
                 break;
                     
             case State::IL_Step:  // il step
                 break;
 
-            //  x   x
-            //  
-            //  
             //      x
-            case State::SL_Free:  // sl step
+            //  
+            //  
+            //  x   x
+            case State::SL_Free:  // Li, is sr, Lj is ir, Lk il
                 double Lix = sr_x;
-                double Ljx = sl_x;
-                double Lkx = ir_x;
-                il_x;
-
+                double Ljx = ir_x;
+                double Lkx = il_x;
+                
                 double Liy = sr_y;
-                double Ljy = sl_y;
-                double Lky = ir_y;
-                il_y; 
+                double Ljy = ir_y;
+                double Lky = il_y;
+                
+                sl_cx = (Lix + Ljx + Lkx) * 0.333333;
+                sl_cy = (Liy + Ljy + Lky) * 0.333333;
 
-                return (a > b);
+                double Lcx = sl_cx;
+                double Lcy = sl_cy;
 
+                double xi = (1 - safe_bound_triangle) * Lix + safe_bound_triangle * Lcx;
+                double yi = (1 - safe_bound_triangle) * Liy + safe_bound_triangle * Lcy;
+
+                double xj = (1 - safe_bound_triangle) * Ljx + safe_bound_triangle * Lcx;
+                double yj = (1 - safe_bound_triangle) * Ljy + safe_bound_triangle * Lcy;
+
+                double xk = (1 - safe_bound_triangle) * Lkx + safe_bound_triangle * Lcx;
+                double yk = (1 - safe_bound_triangle) * Lky + safe_bound_triangle * Lcy;
+
+                double d1 = safe_inter(xi, xj, yi, yj);
+                double d2 = safe_inter(xj, xk, yj, yk);
+                double d3 = safe_inter(xk, xi, yk, yi);
+
+                return ((d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0));
                 break;
 
             case State::SL_Step:  // sl step
@@ -370,41 +402,79 @@ bool LocomotionProcessor::Stable() {
             //  x   x
             //  
             //  
-            //      x
-            case State::IR_Free:  // ir step
+            //  x    
+            case State::IR_Free:  // Li, is sr, Lj is sl, Lk il
                 double Lix = sr_x;
                 double Ljx = sl_x;
-                double Lkx = ir_x;
-                il_x;
+                double Lkx = il_x;
+                //il_x;
 
                 double Liy = sr_y;
                 double Ljy = sl_y;
-                double Lky = ir_y;
-                il_y; 
+                double Lky = il_y;
+                //il_y; 
+                
+                ir_cx = (Lix + Ljx + Lkx) * 0.333333;
+                ir_cy = (Liy + Ljy + Lky) * 0.333333;
 
-                return (a > b);
+                double Lcx = ir_cx;
+                double Lcy = ir_cy;
+
+                double xi = (1 - safe_bound_triangle) * Lix + safe_bound_triangle * Lcx;
+                double yi = (1 - safe_bound_triangle) * Liy + safe_bound_triangle * Lcy;
+
+                double xj = (1 - safe_bound_triangle) * Ljx + safe_bound_triangle * Lcx;
+                double yj = (1 - safe_bound_triangle) * Ljy + safe_bound_triangle * Lcy;
+
+                double xk = (1 - safe_bound_triangle) * Lkx + safe_bound_triangle * Lcx;
+                double yk = (1 - safe_bound_triangle) * Lky + safe_bound_triangle * Lcy;
+
+                double d1 = safe_inter(xi, xj, yi, yj);
+                double d2 = safe_inter(xj, xk, yj, yk);
+                double d3 = safe_inter(xk, xi, yk, yi);
+
+                return ((d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0));
                 break;
             
             case State::IR_Step:  // ir step
 
                 break;
 
+            //  x   
+            //  
+            //  
             //  x   x
-            //  
-            //  
-            //      x
-            case State::SR_Free:  // sr step
-                double Lix = sr_x;
-                double Ljx = sl_x;
-                double Lkx = ir_x;
-                il_x;
+            case State::SR_Free:  // Li, is sl, Lj is ir, Lk il
+                double Lix = sl_x;
+                double Ljx = ir_x;
+                double Lkx = il_x;
+                //il_x;
 
                 double Liy = sr_y;
-                double Ljy = sl_y;
-                double Lky = ir_y;
-                il_y; 
+                double Ljy = ir_y;
+                double Lky = il_y;
+                //il_y; 
+                
+                sr_cx = (Lix + Ljx + Lkx) * 0.333333;
+                sr_cy = (Liy + Ljy + Lky) * 0.333333;
 
-                return (a > b);
+                double Lcx = sr_cx;
+                double Lcy = sr_cy;
+
+                double xi = (1 - safe_bound_triangle) * Lix + safe_bound_triangle * Lcx;
+                double yi = (1 - safe_bound_triangle) * Liy + safe_bound_triangle * Lcy;
+
+                double xj = (1 - safe_bound_triangle) * Ljx + safe_bound_triangle * Lcx;
+                double yj = (1 - safe_bound_triangle) * Ljy + safe_bound_triangle * Lcy;
+
+                double xk = (1 - safe_bound_triangle) * Lkx + safe_bound_triangle * Lcx;
+                double yk = (1 - safe_bound_triangle) * Lky + safe_bound_triangle * Lcy;
+
+                double d1 = safe_inter(xi, xj, yi, yj);
+                double d2 = safe_inter(xj, xk, yj, yk);
+                double d3 = safe_inter(xk, xi, yk, yi);
+
+                return ((d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0));
                 break  ;
             
             case State::SR_Step:  // sr step
@@ -415,6 +485,10 @@ bool LocomotionProcessor::Stable() {
 
 bool LocomotionProcessor::Safe() {
 
+}
+
+double safe_inter(double xa, double xb, double ya, double yb) {
+    return (-xb) * (ya - yb) - (xa - xb) * (-yb);
 }
 
 
