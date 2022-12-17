@@ -21,7 +21,7 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
 
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
 
-    timer = nh.createTimer(ros::Duration(1.0 / operating_freq), LocomotionProcessor::Pos_Update);
+    //timer = nh_.createTimer(ros::Duration(1.0 / operating_freq), LocomotionProcessor::Pos_Update);
 
     // #### Robot Params ####
     shoulder_length = 0.055;
@@ -45,6 +45,8 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
     x_vel = 0;
     y_vel = 0;
     theta_vel = 0;
+
+    step_vel = 0.1;
 
     walking_z = 0.1;
 
@@ -93,10 +95,10 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
     state = Halt;
 }
 
-void LocomotionProcessor::Twist_CB(const twist_msgs::TwistStamped::ConstPtr& twist) {
+void LocomotionProcessor::Twist_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) {
 
-    x_vel = twist.twist.linear.x;
-    theta_vel = twist.twist.angular.z;
+    x_vel = twist->twist.linear.x;
+    theta_vel = twist->twist.angular.z;
 
 }
 
@@ -171,10 +173,12 @@ void LocomotionProcessor::Init() {
     il_y = body_width / 2.0;
     il_z = -walking_z;
     
-    LocomotionProcessor::Command_SR();
-    LocomotionProcessor::Command_SL();
-    LocomotionProcessor::Command_IR();
-    LocomotionProcessor::Command_IL();
+    //LocomotionProcessor::Command_SR();
+    //LocomotionProcessor::Command_SL();
+    //LocomotionProcessor::Command_IR();
+    //LocomotionProcessor::Command_IL();
+
+    // On Ros Init, Legs should move to des positions
 
 }
 
@@ -183,7 +187,7 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
     double dtheta = theta_vel / operating_freq;
     double dy = 0;
 
-    if (1 /* Safe() */) {
+    //if (1 /* Safe() */) {
 
         double sr_x_new = (sr_l * sr_y * dtheta - dx);
         double sl_x_new = (sl_l * sl_y * dtheta - dx);
@@ -200,16 +204,16 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
         double ir_z_new = 0;
         double il_z_new = 0;
 
-    }
+    //}
 
-    if (1 /* Safe() */) {
+    //if (1 /* Safe() */) {
         switch(state) { 
             case State::Halt:     // nop
                 if (x_vel != 0 && theta_vel != 0)
-                    state = State::IL_Free;
+                    state = State::IL_Next;
                 break;
 
-            case State::IL_Free:  // il step
+            case State::IL_Next:  // il step
                 // Move to safe triangle
                 if (Stable()) {
                     il_x_new = 0;
@@ -217,7 +221,7 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
 
                     il_z = -walking_z + 0.05;
 
-                    if state = State::IL_Step;
+                    state = State::IL_Step;
                 }
                 break;
 
@@ -227,19 +231,19 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
                 il_x_new = step_vel / operating_freq; il_y_new = 0;
                 if (sqrt(il_x * il_x + il_y * il_y) - safe_bound > max_tangential) {
                     il_z = -walking_z;
-                    state = State::SL_Free;
+                    state = State::SL_Next;
                 }
                 
                 break;
 
-            case State::SL_Free:  // sl step
+            case State::SL_Next:  // sl step
                 if (Stable()) {
                     sl_x_new = 0;
                     sl_y_new = 0;
                     
                     sl_z = -walking_z + 0.05;
 
-                    if state = State::SL_Step;
+                    state = State::SL_Step;
                 }
                 break;
 
@@ -248,19 +252,19 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
                 sl_x_new = step_vel / operating_freq; sl_y_new = 0;
                 if (sqrt(sl_x * sl_x + sl_y * sl_y) - safe_bound > max_tangential) {
                     sl_z = -walking_z;
-                    state = State::IR_Free;
+                    state = State::IR_Next;
                 }
 
                 break;
 
-            case State::IR_Free:  // ir step
+            case State::IR_Next:  // ir step
                 if (Stable()) {
                     ir_x_new = 0;
                     ir_y_new = 0;
                     
                     ir_z = -walking_z + 0.05;
 
-                    if state = State::IR_Step;
+                    state = State::IR_Step;
                 }
                 break;
             
@@ -268,18 +272,18 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
                 ir_x_new = step_vel / operating_freq; ir_y_new = 0;
                 if (sqrt(ir_x * ir_x + ir_y * ir_y) - safe_bound > max_tangential) {
                     ir_z = -walking_z;
-                    state = State::SR_Free;
+                    state = State::SR_Next;
                 }
                 break;
 
-            case State::SR_Free:  // sr step
+            case State::SR_Next:  // sr step
                 if (Stable()) {
                     sr_x_new = 0;
                     sr_y_new = 0;
                     
                     sr_z = -walking_z + 0.05;
 
-                    if state = State::SR_Step;
+                    state = State::SR_Step;
                 }
                 break;
             
@@ -287,9 +291,9 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
                 sr_x_new = step_vel / operating_freq; sr_y_new = 0;
                 if (sqrt(sr_x * sr_x + sr_y * sr_y) - safe_bound > max_tangential) {
                     sr_z = -walking_z;
-                    state = State::IL_Free;
+                    state = State::IL_Next;
                 }
-                break
+                break;
         } 
 
         // Apply Velocity 
@@ -305,7 +309,7 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
         il_y += il_y_new;   
 
         // Z only changes on state transition
-    }
+    //}
 
 
 
@@ -317,14 +321,15 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
 
 bool LocomotionProcessor::Stable() {
     switch(state) { 
-            case State::Halt:     // nop
+            case State::Halt: { // nop
                 return true; // Should I have this just return true, or ony after completely reset to 
+            }
 
             //  x   x
             //  
             //  
             //      x
-            case State::IL_Free:  // Li, is sl, Lj is sr, Lk ir
+            case State::IL_Next: { // Li, is sl, Lj is sr, Lk ir
                 double Lix = sr_x;
                 double Ljx = sl_x;
                 double Lkx = ir_x;
@@ -355,16 +360,19 @@ bool LocomotionProcessor::Stable() {
                 double d3 = safe_inter(xk, xi, yk, yi);
 
                 return ((d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0));
-                break;
+            }
+                //break;
                     
-            case State::IL_Step:  // il step
+            case State::IL_Step: { // il step
                 break;
+            }
 
             //      x
             //  
             //  
             //  x   x
-            case State::SL_Free:  // Li, is sr, Lj is ir, Lk il
+            case State::SL_Next: { // Li, is sr, Lj is ir, Lk il
+            
                 double Lix = sr_x;
                 double Ljx = ir_x;
                 double Lkx = il_x;
@@ -393,17 +401,19 @@ bool LocomotionProcessor::Stable() {
                 double d3 = safe_inter(xk, xi, yk, yi);
 
                 return ((d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0));
-                break;
+                //break;
+            }
 
-            case State::SL_Step:  // sl step
+            case State::SL_Step: { // sl step
 
                 break;
+            }
 
             //  x   x
             //  
             //  
             //  x    
-            case State::IR_Free:  // Li, is sr, Lj is sl, Lk il
+            case State::IR_Next:{ // Li, is sr, Lj is sl, Lk il
                 double Lix = sr_x;
                 double Ljx = sl_x;
                 double Lkx = il_x;
@@ -434,17 +444,19 @@ bool LocomotionProcessor::Stable() {
                 double d3 = safe_inter(xk, xi, yk, yi);
 
                 return ((d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0));
-                break;
+            }
+                //break;
             
-            case State::IR_Step:  // ir step
+            case State::IR_Step: { // ir step
 
                 break;
+            }
 
             //  x   
             //  
             //  
             //  x   x
-            case State::SR_Free:  // Li, is sl, Lj is ir, Lk il
+            case State::SR_Next: { // Li, is sl, Lj is ir, Lk il
                 double Lix = sl_x;
                 double Ljx = ir_x;
                 double Lkx = il_x;
@@ -475,11 +487,12 @@ bool LocomotionProcessor::Stable() {
                 double d3 = safe_inter(xk, xi, yk, yi);
 
                 return ((d1 > 0 && d2 > 0 && d3 > 0) || (d1 < 0 && d2 < 0 && d3 < 0));
-                break  ;
+                //break  ;
+            }
             
-            case State::SR_Step:  // sr step
-            
-                break
+            case State::SR_Step: { // sr step
+                break;
+            }
         } 
 }
 

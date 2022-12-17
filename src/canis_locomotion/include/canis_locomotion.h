@@ -3,10 +3,10 @@
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/String.h>
-#include <twist_msgs/TwistStamped.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PointStamped.h>
 
-enum State {Halt, IL_Next, IL_Step, SL_Next, SR_Step, IR_Next, IR_Step, SR_Next, SR_Step};
+enum State {Halt, IL_Next, IL_Step, SL_Next, SL_Step, IR_Next, IR_Step, SR_Next, SR_Step};
 
 class LocomotionProcessor
 {
@@ -18,7 +18,7 @@ class LocomotionProcessor
         ~LocomotionProcessor() = default;
 
         // Callback methods
-        void Twist_CB(const twist_msgs::TwistStamped::ConstPtr& twist);
+        void Twist_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
 
         // Operation Methods
         void Command_SR();
@@ -27,8 +27,10 @@ class LocomotionProcessor
         void Command_IL();
         void Init();
         void Pos_Update(const ros::TimerEvent& event);
-        bool Stablity();
+        bool Stable();
         bool Safe();
+
+        double operating_freq; // TBD, more testing
 
 
 
@@ -48,12 +50,13 @@ class LocomotionProcessor
         double forearm_length;
 
         double max_extend;
+        double max_tangential;
+
+        double safe_bound_triangle;
 
         double body_width;
         double center_to_front;
         double center_to_back;
-
-        double operating_freq; // TBD, more testing
 
         /*
          * Messages
@@ -80,11 +83,12 @@ class LocomotionProcessor
         ros::Subscriber vel_sub;
     
         // #### State Variables ####
-        ros::Timer timer;
 
         double x_vel;
         double y_vel;
         double theta_vel;
+
+        double step_vel;
 
         double walking_z;
 

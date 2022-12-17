@@ -1,6 +1,6 @@
 
 #include <ros/ros.h>
-#include "../include/leg_inverse_kinematics.h"
+#include "../include/canis_locomotion.h"
 
 
 int main(int argc, char **argv)
@@ -9,7 +9,10 @@ int main(int argc, char **argv)
 
     ros::NodeHandle nh_private("~");
     //tf::TransformListener tf(ros::Duration(10));
-    LegInverseKinematicsProcessor IK = LegInverseKinematicsProcessor(nh_private);
+    LocomotionProcessor lp = LocomotionProcessor(nh_private);
+    lp.Init();
+
+    ros::Timer timer = nh_private.createTimer(ros::Duration(lp.operating_freq), &LocomotionProcessor::Pos_Update, &lp);
     
     ros::spin();
     return 0;

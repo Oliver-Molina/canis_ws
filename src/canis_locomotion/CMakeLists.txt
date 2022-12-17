@@ -204,3 +204,6 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+add_executable(canis_locomotion_exe src/canis_locomotion_node.cpp src/canis_locomotion.cpp)
+target_link_libraries(canis_locomotion_exe ${catkin_LIBRARIES})
