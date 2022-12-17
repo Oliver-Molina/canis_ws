@@ -131,7 +131,7 @@ void LegInverseKinematicsProcessor::Superior_Left_Leg_Pos_CB(const geometry_msgs
     stringstream << std::fixed << "shoulder: " << shoulder_abductor_pos << std::endl;
     std::string str = stringstream.str();
     debug_msg.data = str.c_str();
-    debug_pub.publish(debug_msg);
+    //debug_pub.publish(debug_msg);
 
 
 
@@ -176,21 +176,21 @@ void LegInverseKinematicsProcessor::Inferior_Right_Leg_Pos_CB(const geometry_msg
     inferior_right_forearm_pub.publish(inferior_right_forearm_msg);
 
     std::ostringstream stringstream;
-    stringstream << std::fixed << "x: " << inferior_right_x << " y: " << inferior_right_y << " z: " << inferior_right_z << std::endl;
-    stringstream << std::fixed << "dyz: " << dyz << std::endl;
-    stringstream << std::fixed << "lyz: " << lyz << std::endl;
-    stringstream << std::fixed << "g1: " << g1 << std::endl;
-    stringstream << std::fixed << "g2: " << g2 << std::endl;
-    stringstream << std::fixed << "lxz: " << lxz << std::endl;
-    stringstream << std::fixed << "n: " << n << std::endl;
-    stringstream << std::fixed << "a1: " << a1 << std::endl;
-    stringstream << std::fixed << "a2: " << a2 << std::endl;
-    stringstream << std::fixed << "forearm: " << forearm_extensor_pos << std::endl;
-    stringstream << std::fixed << "arm: " << arm_extensor_pos << std::endl;
-    stringstream << std::fixed << "shoulder: " << shoulder_abductor_pos << std::endl;
+    //stringstream << std::fixed << "x: " << inferior_right_x << " y: " << inferior_right_y << " z: " << inferior_right_z << std::endl;
+    //stringstream << std::fixed << "dyz: " << dyz << std::endl;
+    //stringstream << std::fixed << "lyz: " << lyz << std::endl;
+    //stringstream << std::fixed << "g1: " << g1 << std::endl;
+    //stringstream << std::fixed << "g2: " << g2 << std::endl;
+    //stringstream << std::fixed << "lxz: " << lxz << std::endl;
+    //stringstream << std::fixed << "n: " << n << std::endl;
+    //stringstream << std::fixed << "a1: " << a1 << std::endl;
+    //stringstream << std::fixed << "a2: " << a2 << std::endl;
+    //stringstream << std::fixed << "forearm: " << forearm_extensor_pos << std::endl;
+    //stringstream << std::fixed << "arm: " << arm_extensor_pos << std::endl;
+    //stringstream << std::fixed << "shoulder: " << shoulder_abductor_pos << std::endl;
     std::string str = stringstream.str();
     debug_msg.data = str.c_str();
-    debug_pub.publish(debug_msg);
+    //debug_pub.publish(debug_msg);
 
 }
 
@@ -245,7 +245,7 @@ void LegInverseKinematicsProcessor::Inferior_Left_Leg_Pos_CB(const geometry_msgs
     stringstream << std::fixed << "shoulder: " << shoulder_abductor_pos << std::endl;
     std::string str = stringstream.str();
     debug_msg.data = str.c_str();
-    debug_pub.publish(debug_msg);
+    //debug_pub.publish(debug_msg);
 }
 
 

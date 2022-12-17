@@ -187,6 +187,12 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
     double dtheta = theta_vel / operating_freq;
     double dy = 0;
 
+    std::ostringstream stringstream;
+    stringstream << std::fixed << "state: " << state << std::endl;
+    std::string str = stringstream.str();
+    debug_msg.data = str.c_str();
+    debug_pub.publish(debug_msg);
+
     //if (1 /* Safe() */) {
 
         double sr_x_new = (sr_l * sr_y * dtheta - dx);
@@ -208,10 +214,17 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
 
     //if (1 /* Safe() */) {
         switch(state) { 
-            case State::Halt:     // nop
-                if (x_vel != 0 && theta_vel != 0)
+            case State::Halt: {    // nop
+                std::ostringstream stringstream;
+                stringstream << std::fixed << "xvel: " << x_vel << " , thetavel" << theta_vel;
+                std::string str = stringstream.str();
+                debug_msg.data = str.c_str();
+                debug_pub.publish(debug_msg);
+
+                if (x_vel != 0 || theta_vel != 0)
                     state = State::IL_Next;
                 break;
+            }
 
             case State::IL_Next:  // il step
                 // Move to safe triangle
