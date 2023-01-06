@@ -12,7 +12,9 @@ int main(int argc, char **argv)
     LocomotionProcessor lp = LocomotionProcessor(nh_private);
     lp.Init();
 
-    ros::Timer timer = nh_private.createTimer(ros::Duration(1.0 / lp.operating_freq), &LocomotionProcessor::Pos_Update, &lp);
+    lp.Start_Position();
+
+    //ros::Timer timer = nh_private.createTimer(ros::Duration(1.0 / lp.operating_freq), &LocomotionProcessor::Pos_Update, &lp);
     
     ros::spin();
     return 0;

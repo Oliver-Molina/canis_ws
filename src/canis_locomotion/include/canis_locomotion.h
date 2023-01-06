@@ -25,6 +25,8 @@ class LocomotionProcessor
         void Command_SL();
         void Command_IR();
         void Command_IL();
+        void Move_Body(double x, double y);
+        void Start_Position();
         void Init();
         void Pos_Update(const ros::TimerEvent& event);
         bool Stable();

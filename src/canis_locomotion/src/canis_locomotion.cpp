@@ -182,6 +182,67 @@ void LocomotionProcessor::Init() {
 
 }
 
+void LocomotionProcessor::Move_Body(double x, double y) {
+    sr_x = center_to_front - x;
+    sr_y = -body_width / 2.0 - y;
+    sr_z = -walking_z;
+
+    sl_x = center_to_front - x;
+    sl_y = body_width / 2.0 - y;
+    sl_z = -walking_z;
+
+    ir_x = -center_to_back - x;
+    ir_y = -body_width / 2.0 - y;
+    ir_z = -walking_z;
+
+    il_x = -center_to_back - x;
+    il_y = body_width / 2.0 - y;
+    il_z = -walking_z;
+
+    LocomotionProcessor::Command_SR();
+    LocomotionProcessor::Command_SL();
+    LocomotionProcessor::Command_IR();
+    LocomotionProcessor::Command_IL();
+    
+}
+
+void LocomotionProcessor::Start_Position() {
+    // Position body over stable 3 feet
+    LocomotionProcessor::Move_Body(-0.03, 0.0);
+
+    // Move front right leg
+    sr_z += 0.05;
+    LocomotionProcessor::Command_SR();
+
+    sr_x -= (center_to_front + center_to_back) / 4.0;
+    LocomotionProcessor::Command_SR();
+
+    sr_z -= 0.05;
+    LocomotionProcessor::Command_SR();
+
+    // Position body over stable 3 feet
+    LocomotionProcessor::Move_Body(0.06, 0.0);
+    
+    // Move front right leg
+    il_z += 0.05;
+    LocomotionProcessor::Command_SR();
+
+    il_x += (center_to_front + center_to_back) / 4.0;
+    LocomotionProcessor::Command_SR();
+
+    il_z -= 0.05;
+    LocomotionProcessor::Command_SR();// Move front right leg
+    sr_z += 0.05;
+    LocomotionProcessor::Command_IL();
+
+    sr_x -= (center_to_front + center_to_back) / 4.0;
+    LocomotionProcessor::Command_IL();
+
+    sr_z -= 0.05;
+    LocomotionProcessor::Command_IL();
+    
+}
+
 void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
     double dx = x_vel / operating_freq;
     double dtheta = theta_vel / operating_freq;
