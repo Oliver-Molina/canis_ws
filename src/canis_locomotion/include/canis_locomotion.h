@@ -137,6 +137,11 @@ class LocomotionProcessor
         double il_cy;
         double il_cz;
 
+        double leg_delta;
+        double relative_step_rate;
+
+        double step_height;
+
         bool moving;
 
         State state;
