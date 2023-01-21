@@ -28,7 +28,7 @@ class LocomotionProcessor
         void Move_Body(double x, double y);
         void Start_Position();
         void Init();
-        void Pos_Update(const ros::TimerEvent& event);
+        void Vel_Update(const ros::TimerEvent& event);
         bool Stable();
         bool Safe();
 
@@ -89,6 +89,8 @@ class LocomotionProcessor
         double x_vel;
         double y_vel;
         double theta_vel;
+        double turning_rad;
+        double total_len;
 
         double step_vel;
 

@@ -39,7 +39,10 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
     x_vel = 0;
     y_vel = 0;
     theta_vel = 0;
+    turning_rad = 0;
     state = IR_Next;
+    total_len = (center_to_front + center_to_back) / 2.0;
+    
 
     // #### Leg Positions & Variables ####
     sr_x = 0; // Superior Right X (Relative to Center of Mass)
@@ -200,28 +203,36 @@ void LocomotionProcessor::Move_Body(double x, double y) {
 }
 
 
-void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
+void LocomotionProcessor::Vel_Update(const ros::TimerEvent& event) {
+
+    if (theta_vel == 0) {
+        turning_rad = INFINITY;
+    }
+    else {
+        turning_rad = x_vel / theta_vel;
+    }
+
     double dx = x_vel / operating_freq;
     double dtheta = theta_vel / operating_freq;
     double dy = 0;
 
-    std::ostringstream stringstream;
+    /*std::ostringstream stringstream;
     stringstream << std::fixed << "state: " << state << std::endl;
     std::string str = stringstream.str();
     debug_msg.data = str.c_str();
-    debug_pub.publish(debug_msg);
+    debug_pub.publish(debug_msg);*/
 
     //if (1 /* Safe() */) {
 
-        double sr_x_new = (sr_l * sr_y * dtheta - dx);
-        double sl_x_new = (sl_l * sl_y * dtheta - dx);
-        double ir_x_new = (ir_l * ir_y * dtheta - dx);
-        double il_x_new = (il_l * il_y * dtheta - dx);
+        double sr_x_new = (sr_y * dtheta - dx);
+        double sl_x_new = (sl_y * dtheta - dx);
+        double ir_x_new = (ir_y * dtheta - dx);
+        double il_x_new = (il_y * dtheta - dx);
 
-        double sr_y_new = (-sr_l * sr_x * dtheta - dy);
-        double sl_y_new = (-sl_l * sl_x * dtheta - dy);
-        double ir_y_new = (-ir_l * ir_x * dtheta - dy);
-        double il_y_new = (-il_l * il_x * dtheta - dy);
+        double sr_y_new = (-sr_x * dtheta - dy);
+        double sl_y_new = (-sl_x * dtheta - dy);
+        double ir_y_new = (-ir_x * dtheta - dy);
+        double il_y_new = (-il_x * dtheta - dy);
 
         double sr_z_new = 0;
         double sl_z_new = 0;
@@ -236,17 +247,16 @@ void LocomotionProcessor::Pos_Update(const ros::TimerEvent& event) {
                 //std::ostringstream stringstream;
                 //stringstream << std::fixed << "xvel: " << x_vel << " , thetavel" << theta_vel;
                 //std::string str = stringstream.str();
-                //debug_msg.data = str.c_str();
-                //debug_pub.publish(debug_msg);
+                //debug_msg.data = str.c_stPossg);
                 break;
             }
 
             case State::IR_Next:
                 if (Stable()) {
-                    ir_x_new = 0;
-                    ir_y_new = 0;
                     
                     ir_z += step_height;
+                    ir_x_new = 0;
+                    ir_y_new = 0;
                     leg_delta = 0;
 
                     LocomotionProcessor::Command_IR();
