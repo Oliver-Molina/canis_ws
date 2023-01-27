@@ -7,6 +7,8 @@
 
 #include "../include/canis_locomotion.h"
 
+#include <robot_core/Gait.h>
+
 // TODO:
 // Condition to check if safe to keep moving forwards
 

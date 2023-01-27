@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  robot_core
 )
 
 ## System dependencies are found with CMake's conventions
@@ -204,5 +205,8 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(canis_locomotion_exe src/canis_locomotion_node.cpp src/canis_locomotion.cpp src/gait_executor_node.cpp src/gait_executor.cpp)
+add_executable(canis_locomotion_exe src/canis_locomotion_node.cpp src/canis_locomotion.cpp)
 target_link_libraries(canis_locomotion_exe ${catkin_LIBRARIES})
+add_executable(gait_executor src/gait_executor_node.cpp src/gait_executor.cpp)
+target_link_libraries(gait_executor ${catkin_LIBRARIES})
+add_dependencies(gait_executor ${catkin_EXPORTED_TARGETS})

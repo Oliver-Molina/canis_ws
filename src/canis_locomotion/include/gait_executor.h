@@ -4,8 +4,12 @@
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Bool.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PointStamped.h>
+
+#include <robot_core/Gait.h>
+#include <robot_core/GaitVec.h>
 
 class GaitExecutor
 {
@@ -17,10 +21,11 @@ class GaitExecutor
         ~GaitExecutor() = default;
 
         // Callback methods
-        void Gait_CB(const robot_core::Gait::ConstPtr& gait);
+        void Gait_CB(const robot_core::GaitVec::ConstPtr& gait);
+        void Vel_CB(const std_msgs::Float64::ConstPtr& vel);
         void Reset_CB(const std_msgs::Bool::ConstPtr& reset);
 
-        void Vel_Update(const ros::TimerEvent& event)
+        void Vel_Update(const ros::TimerEvent& event);
 
         // Operation Methods
         void Command_SR();
@@ -84,7 +89,7 @@ class GaitExecutor
     
         // #### State Variables ####
 
-        vector<Gait> gait_vec;
+        std::vector<robot_core::Gait> gait_vec;
  
         double walking_vel;
         double walking_z;
@@ -108,15 +113,15 @@ class GaitExecutor
 
 };
 
+struct Point {
+    double x;
+    double y;
+    double z;
+};
+
 struct Gait {
     Point sr;
     Point sl;
     Point ir;
     Point il;
-};
-
-struct Point {
-    double x;
-    double y;
-    double z;
 };

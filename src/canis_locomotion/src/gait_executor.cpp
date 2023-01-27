@@ -1,10 +1,13 @@
 #include <math.h>
 #include <iomanip>
+#include <vector>
+
 #include <ros/ros.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PointStamped.h>
+#include <std_msgs/Bool.h>
 #include <robot_core/Gait.h>
-//#include <robot_core/GaitVec.h>
+#include <robot_core/GaitVec.h>
 #include <tf/tf.h>
 
 #include "../include/gait_executor.h"
@@ -32,9 +35,9 @@
 
 GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     
-    gait_sub = nh_.subscribe<robot_core::Gait>("/path/gait", 1000, &LocomotionProcessor::Gait_CB, this);
-    vel_sub = nh_.subscribe<std:msgs::float64>("/command/velocity", 1000, &LocomotionProcessor::Vel_CB, this);
-    reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &LocomotionProcessor::Reset_CB, this);
+    gait_sub = nh_.subscribe<robot_core::GaitVec>("/path/gait", 1000, &GaitExecutor::Gait_CB, this);
+    vel_sub = nh_.subscribe<std_msgs::Float64>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
+    reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitExecutor::Reset_CB, this);
 
     sr_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/pos/superior/right", 1000);
     sl_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/pos/superior/left", 1000);
@@ -53,8 +56,8 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
 
     nh_.param<double>("/frequency", operating_freq, 30);
     nh_.param<double>("/walking_height", walking_z, 0.15);
-    nh_.param<double>("/triangle_boundary", safe_bound_triangle, 0.03);
-    nh_.param<double>("/relative_step_rate", relative_step_rate, 10.0);
+    //nh_.param<double>("/triangle_boundary", safe_bound_triangle, 0.03);
+    //nh_.param<double>("/relative_step_rate", relative_step_rate, 10.0);
     nh_.param<double>("/step_height", step_height, 0.05);
 
     // #### Robot Variables ####
@@ -79,97 +82,70 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     il_z = 0;
 }
 
-void LocomotionProcessor::Gait_Vec_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) {
+void GaitExecutor::Gait_CB(const robot_core::GaitVec::ConstPtr& gait) { // Should actually take a gait vec with some way of *Tweaking* the path
 
-    x_vel = twist->twist.linear.x;
-    theta_vel = twist->twist.angular.z;
+    //x_vel = twist->twist.linear.x;
+    //theta_vel = twist->twist.angular.z;
 
 }
 
-void LocomotionProcessor::Command_SR() {
+void GaitExecutor::Vel_CB(const std_msgs::Float64::ConstPtr& vel) { // Should actually take a gait vec with some way of *Tweaking* the path
+
+    //x_vel = twist->twist.linear.x;
+    //theta_vel = twist->twist.angular.z;
+
+}
+
+void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) { // Should actually take a gait vec with some way of *Tweaking* the path
+
+    //x_vel = twist->twist.linear.x;
+    //theta_vel = twist->twist.angular.z;
+
+}
+
+void GaitExecutor::Command_SR() {
     
     sr_msg.point.x = sr_x - center_to_front;
     sr_msg.point.y = sr_y + body_width / 2.0;
     sr_msg.point.z = sr_z;
 
     sr_msg.header.stamp = ros::Time::now();
-
-    sr_l = sqrt(sr_x * sr_x + sr_y * sr_y);
-
     sr_pub.publish(sr_msg);
     
 }
-void LocomotionProcessor::Command_SL() {
+void GaitExecutor::Command_SL() {
 
     sl_msg.point.x = sl_x - center_to_front;
     sl_msg.point.y = sl_y - body_width / 2.0;
     sl_msg.point.z = sl_z;
 
     sl_msg.header.stamp = ros::Time::now();
-
-    sl_l = sqrt(sl_x * sl_x + sl_y * sl_y);
-
     sl_pub.publish(sl_msg);
     
 }
-void LocomotionProcessor::Command_IR() {
+void GaitExecutor::Command_IR() {
     
     ir_msg.point.x = ir_x + center_to_back;
     ir_msg.point.y = ir_y + body_width / 2.0;
     ir_msg.point.z = ir_z;
 
     ir_msg.header.stamp = ros::Time::now();
-
-    ir_l = sqrt(ir_x * ir_x + ir_y * ir_y);
-
     ir_pub.publish(ir_msg);
     
 }
-void LocomotionProcessor::Command_IL() {
+void GaitExecutor::Command_IL() {
     
     il_msg.point.x = il_x + center_to_back;
     il_msg.point.y = il_y - body_width / 2.0;
     il_msg.point.z = il_z;
 
     il_msg.header.stamp = ros::Time::now();
-
-    il_l = sqrt(il_x * il_x + il_y * il_y);
-
     il_pub.publish(il_msg);
     
 }
 
-void LocomotionProcessor::Init() {
 
-    sr_x = center_to_front;
-    sr_y = -body_width / 2.0 + shoulder_length;
-    sr_z = -walking_z;
-
-    sl_x = center_to_front;
-    sl_y = body_width / 2.0 + shoulder_length;
-    sl_z = -walking_z;
-
-    ir_x = -center_to_back;
-    ir_y = -body_width / 2.0 + shoulder_length;
-    ir_z = -walking_z;
-
-    il_x = -center_to_back;
-    il_y = body_width / 2.0 + shoulder_length;
-    il_z = -walking_z;
-
-    il_x += (center_to_front + center_to_back) / 4.0;
-    sr_x -= (center_to_front + center_to_back) / 4.0;
-    
-    LocomotionProcessor::Command_SR();
-    LocomotionProcessor::Command_SL();
-    LocomotionProcessor::Command_IR();
-    LocomotionProcessor::Command_IL();
-
-    // On Ros Init, Legs should move to des positions
-
-}
-
-void LocomotionProcessor::Move_Body(double x, double y) {
+void GaitExecutor::Move_Body(double x, double y) {
     sr_x = center_to_front - x;
     sr_y = -body_width / 2.0 - y;
     sr_z = -walking_z;
@@ -186,15 +162,15 @@ void LocomotionProcessor::Move_Body(double x, double y) {
     il_y = body_width / 2.0 - y;
     il_z = -walking_z;
 
-    LocomotionProcessor::Command_SR();
-    LocomotionProcessor::Command_SL();
-    LocomotionProcessor::Command_IR();
-    LocomotionProcessor::Command_IL();
+    GaitExecutor::Command_SR();
+    GaitExecutor::Command_SL();
+    GaitExecutor::Command_IR();
+    GaitExecutor::Command_IL();
     
 }
 
 
-void LocomotionProcessor::Vel_Update(const ros::TimerEvent& event) {
+void GaitExecutor::Vel_Update(const ros::TimerEvent& event) {
 
 }
 
