@@ -41,7 +41,7 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
     theta_vel = 0;
     turning_rad = 0;
     state = IR_Next;
-    total_len = (center_to_front + center_to_back) / 2.0;
+    total_len = (center_to_front + center_to_back);
     
 
     // #### Leg Positions & Variables ####
@@ -86,6 +86,8 @@ LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
     il_cz = 0;
 
     leg_delta = 0;
+
+    step_pull_distance = 0.125 * total_len;
 }
 
 void LocomotionProcessor::Twist_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) {

@@ -8,14 +8,14 @@
 
 enum State {Halt, IL_Next, IL_Step, SL_Next, SL_Step, IR_Next, IR_Step, SR_Next, SR_Step};
 
-class LocomotionProcessor
+class GaitPlanner
 {
     public:
         // Constructor
-        LocomotionProcessor(const ros::NodeHandle &nh_private_);
+        GaitPlanner(const ros::NodeHandle &nh_private_);
 
         // Destructor
-        ~LocomotionProcessor() = default;
+        ~GaitPlanner() = default;
 
         // Callback methods
         void Twist_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
