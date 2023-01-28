@@ -56,16 +56,15 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
 
     nh_.param<double>("/frequency", operating_freq, 30);
     nh_.param<double>("/walking_height", walking_z, 0.15);
-    //nh_.param<double>("/triangle_boundary", safe_bound_triangle, 0.03);
-    //nh_.param<double>("/relative_step_rate", relative_step_rate, 10.0);
     nh_.param<double>("/step_height", step_height, 0.05);
 
     // #### Robot Variables ####
     gait_vec = {};
-    walking_vel = 0;
     gait_current;
     gait_next;
     percent_step = 0;
+    x_vel = 0;
+    theta_vel = 0;
 
     // #### Leg Positions & Variables ####
     sr_x = 0; // Superior Right X (Relative to Center of Mass)
@@ -85,21 +84,22 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     il_z = 0;
 }
 
-void GaitExecutor::Gait_CB(const robot_core::GaitVec::ConstPtr& gait) { // Should actually take a gait vec with some way of *Tweaking* the path
+void GaitExecutor::Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait) { 
+    gait_vec = gait->gaits;
+}
 
-    //x_vel = twist->twist.linear.x;
-    //theta_vel = twist->twist.angular.z;
+void GaitExecutor::Gait_Add_CB(const robot_core::Gait::ConstPtr& gait) { 
+    gait_vec = gait->gaits;
+}
+
+void GaitExecutor::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) { 
+
+    x_vel = twist->twist.linear.x;
+    theta_vel = twist->twist.angular.z;
 
 }
 
-void GaitExecutor::Vel_CB(const std_msgs::Float64::ConstPtr& vel) { // Should actually take a gait vec with some way of *Tweaking* the path
-
-    //x_vel = twist->twist.linear.x;
-    //theta_vel = twist->twist.angular.z;
-
-}
-
-void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) { // Should actually take a gait vec with some way of *Tweaking* the path
+void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
 
     //x_vel = twist->twist.linear.x;
     //theta_vel = twist->twist.angular.z;
@@ -172,12 +172,35 @@ void GaitExecutor::Move_Body(double x, double y) {
     
 }
 
-Gait GaitExecutor::Gait_Lerp(Gait gait_i, Gait gait_f, double percent) {
+void GaitExecutor::Vel_Update(const ros::TimerEvent& event) {
 
 }
 
-void GaitExecutor::Vel_Update(const ros::TimerEvent& event) {
+double double_lerp(double x1, double x2, double percent) {
+    return x1 + (x2 - x1) * percent;
+}
 
+Point point_lerp(Point p1, Point p2, double percent) {
+    Point out;
+
+    out.x = double_lerp(p1.x, p2.x, percent);
+    out.y = double_lerp(p1.y, p2.y, percent);
+    out.z = double_lerp(p1.z, p2.z, percent);
+
+    return out;
+}
+
+Gait gait_lerp(Gait g1, Gait g2, double percent) {
+    Gait out;
+
+    out.sr = point_lerp(g1.sr, g2.sr, percent);
+    out.sl = point_lerp(g1.sl, g2.sl, percent);
+    out.ir = point_lerp(g1.ir, g2.ir, percent);
+    out.il = point_lerp(g1.il, g2.il, percent);
+    out.com = point_lerp(g1.com, g2.com, percent);
+    out.step = g1.step;
+
+    return out;
 }
 
 

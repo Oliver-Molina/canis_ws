@@ -38,7 +38,8 @@ class GaitExecutor {
         ~GaitExecutor() = default;
 
         // Callback methods
-        void Gait_CB(const robot_core::GaitVec::ConstPtr& gait);
+        void Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait);
+        void Gait_Add_CB(const robot_core::GaitVec::ConstPtr& gait);
         void Vel_CB(const std_msgs::Float64::ConstPtr& vel);
         void Reset_CB(const std_msgs::Bool::ConstPtr& reset);
 
@@ -51,7 +52,6 @@ class GaitExecutor {
         void Command_IL();
 
         void Move_Body(double x, double y);
-        Gait Gait_Lerp(Gait gait_i, Gait gait_f, double percent);
 
         double operating_freq; // TBD, more testing
 
@@ -109,12 +109,13 @@ class GaitExecutor {
 
         std::vector<robot_core::Gait> gait_vec;
  
-        double walking_vel;
         double walking_z;
         double step_height;
         Gait gait_current;
         Gait gait_next;
         double percent_step;
+        double x_vel;
+        double theta_vel;
 
         double sr_x;
         double sr_y;
@@ -133,3 +134,7 @@ class GaitExecutor {
         double il_z;
 
 };
+
+double double_lerp(double x1, double x2, double percent);
+Point point_lerp(Point p1, Point p2, double percent);
+Gait gait_lerp(Gait g1, Gait g2, double percent);
