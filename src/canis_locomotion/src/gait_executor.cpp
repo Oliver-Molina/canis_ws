@@ -35,8 +35,8 @@
 
 GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     
-    gait_sub = nh_.subscribe<robot_core::GaitVec>("/path/gait", 1000, &GaitExecutor::Gait_CB, this);
-    vel_sub = nh_.subscribe<std_msgs::Float64>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
+    gait_sub = nh_.subscribe<robot_core::GaitVec>("/path/gait", 1000, &GaitExecutor::Gait_Replace_CB, this);
+    vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
     reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitExecutor::Reset_CB, this);
 
     sr_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/pos/superior/right", 1000);
@@ -89,7 +89,7 @@ void GaitExecutor::Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait) {
 }
 
 void GaitExecutor::Gait_Add_CB(const robot_core::Gait::ConstPtr& gait) { 
-    gait_vec = gait->gaits;
+    //gait_vec.push_back(gait);
 }
 
 void GaitExecutor::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) { 
@@ -198,7 +198,7 @@ Gait gait_lerp(Gait g1, Gait g2, double percent) {
     out.ir = point_lerp(g1.ir, g2.ir, percent);
     out.il = point_lerp(g1.il, g2.il, percent);
     out.com = point_lerp(g1.com, g2.com, percent);
-    out.step = g1.step;
+    out.foot = g1.foot;
 
     return out;
 }

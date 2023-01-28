@@ -39,8 +39,8 @@ class GaitExecutor {
 
         // Callback methods
         void Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait);
-        void Gait_Add_CB(const robot_core::GaitVec::ConstPtr& gait);
-        void Vel_CB(const std_msgs::Float64::ConstPtr& vel);
+        void Gait_Add_CB(const robot_core::Gait::ConstPtr& gait);
+        void Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
         void Reset_CB(const std_msgs::Bool::ConstPtr& reset);
 
         void Vel_Update(const ros::TimerEvent& event);
