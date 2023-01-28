@@ -11,7 +11,6 @@
 
 // TODO:
 // Condition to check if safe to keep moving forwards
-
 LocomotionProcessor::LocomotionProcessor(const ros::NodeHandle &nh_private_) {
     
     vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/twist", 1000, &LocomotionProcessor::Twist_CB, this);
@@ -596,11 +595,8 @@ bool LocomotionProcessor::Stable() {
             case State::SR_Step: { // sr step
                 break;
             }
-        } 
-}
-
-bool LocomotionProcessor::Safe() {
-
+        }
+        return false;
 }
 
 double safe_inter(double xa, double xb, double ya, double yb) {
