@@ -63,6 +63,9 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     // #### Robot Variables ####
     gait_vec = {};
     walking_vel = 0;
+    gait_current;
+    gait_next;
+    percent_step = 0;
 
     // #### Leg Positions & Variables ####
     sr_x = 0; // Superior Right X (Relative to Center of Mass)
@@ -169,6 +172,9 @@ void GaitExecutor::Move_Body(double x, double y) {
     
 }
 
+Gait GaitExecutor::Gait_Lerp(Gait gait_i, Gait gait_f, double percent) {
+
+}
 
 void GaitExecutor::Vel_Update(const ros::TimerEvent& event) {
 

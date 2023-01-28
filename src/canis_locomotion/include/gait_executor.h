@@ -11,8 +11,25 @@
 #include <robot_core/Gait.h>
 #include <robot_core/GaitVec.h>
 
-class GaitExecutor
-{
+
+enum Foot {SR, SL, IR, IL};
+
+struct Point {
+    double x;
+    double y;
+    double z;
+};
+
+struct Gait {
+    Point sr;
+    Point sl;
+    Point ir;
+    Point il;
+    Point com;
+    Foot foot;
+};
+
+class GaitExecutor {
     public:
         // Constructor
         GaitExecutor(const ros::NodeHandle &nh_private_);
@@ -34,6 +51,7 @@ class GaitExecutor
         void Command_IL();
 
         void Move_Body(double x, double y);
+        Gait Gait_Lerp(Gait gait_i, Gait gait_f, double percent);
 
         double operating_freq; // TBD, more testing
 
@@ -94,6 +112,9 @@ class GaitExecutor
         double walking_vel;
         double walking_z;
         double step_height;
+        Gait gait_current;
+        Gait gait_next;
+        double percent_step;
 
         double sr_x;
         double sr_y;
@@ -111,17 +132,4 @@ class GaitExecutor
         double il_y;
         double il_z;
 
-};
-
-struct Point {
-    double x;
-    double y;
-    double z;
-};
-
-struct Gait {
-    Point sr;
-    Point sl;
-    Point ir;
-    Point il;
 };
