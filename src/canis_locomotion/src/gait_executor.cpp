@@ -9,6 +9,7 @@
 #include <robot_core/Gait.h>
 #include <robot_core/GaitVec.h>
 #include <tf/tf.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include "../include/gait_executor.h"
 
@@ -239,7 +240,14 @@ Gait gait_lerp(Gait g1, Gait g2, double percent) {
     out.sl = point_lerp(g1.sl, g2.sl, percent);
     out.ir = point_lerp(g1.ir, g2.ir, percent);
     out.il = point_lerp(g1.il, g2.il, percent);
-    out.com = point_lerp(g1.com, g2.com, percent);
+    out.com.position = point_lerp(g1.com.position, g2.com.position, percent);
+
+    tf2::Quaternion quat_tf1, quat_tf2;
+    geometry_msgs::Quaternion quat_msg;
+    tf2::convert(g1.com.orientation, quat_tf1);
+    tf2::convert(g2.com.orientation, quat_tf2);
+    out.com.orientation = tf2::toMsg(quat_tf1.tf2::Quaternion::slerp(quat_tf2, percent)); // = point_lerp(g1.com.position, g2.com.position, percent);
+    
     out.foot = g1.foot;
 
     return out;
