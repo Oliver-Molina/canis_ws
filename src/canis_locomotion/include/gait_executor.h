@@ -14,7 +14,7 @@
 
 enum Foot {SR, SL, IR, IL};
 
-struct Point {
+/*struct Point {
     double x;
     double y;
     double z;
@@ -27,7 +27,10 @@ struct Gait {
     Point il;
     Point com;
     Foot foot;
-};
+};*/
+
+using namespace robot_core;
+using namespace geometry_msgs;
 
 class GaitExecutor {
     public:
@@ -39,7 +42,7 @@ class GaitExecutor {
 
         // Callback methods
         void Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait);
-        void Gait_Add_CB(const robot_core::Gait::ConstPtr& gait);
+        void Gait_CB(const robot_core::Gait::ConstPtr& gait);
         void Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
         void Reset_CB(const std_msgs::Bool::ConstPtr& reset);
 
@@ -52,6 +55,7 @@ class GaitExecutor {
         void Command_IL();
 
         void Move_Body(double x, double y);
+        void Command_Body();
 
         double operating_freq; // TBD, more testing
 
@@ -116,6 +120,7 @@ class GaitExecutor {
         double percent_step;
         double x_vel;
         double theta_vel;
+        int gait_index;
 
         double sr_x;
         double sr_y;
@@ -132,6 +137,8 @@ class GaitExecutor {
         double il_x;
         double il_y;
         double il_z;
+
+        Point sr, sl, ir, il;
 
 };
 
