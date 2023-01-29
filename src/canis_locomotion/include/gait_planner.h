@@ -1,15 +1,20 @@
 #include <iostream>
+#include <vector>
 
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Bool.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PointStamped.h>
 
-enum State {Halt, IL_Next, IL_Step, SL_Next, SL_Step, IR_Next, IR_Step, SR_Next, SR_Step};
+#include <robot_core/Gait.h>
+#include <robot_core/GaitVec.h>
 
-class GaitPlanner
-{
+using namespace robot_core;
+using namespace geometry_msgs;
+
+class GaitPlanner {
     public:
         // Constructor
         GaitPlanner(const ros::NodeHandle &nh_private_);
@@ -18,22 +23,26 @@ class GaitPlanner
         ~GaitPlanner() = default;
 
         // Callback methods
-        void Twist_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
+        void Gait_CB(const robot_core::Gait::ConstPtr& gait);
+        void Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
+        void Reset_CB(const std_msgs::Bool::ConstPtr& reset);
+
+        void Pose_Update(const ros::TimerEvent& event);
 
         // Operation Methods
         void Command_SR();
         void Command_SL();
         void Command_IR();
         void Command_IL();
-        void Move_Body(double x, double y);
-        void Start_Position();
+        void Command_Body();
         void Init();
-        void Vel_Update(const ros::TimerEvent& event);
-        bool Stable();
-        bool Safe();
+        void Calc_Deltas();
 
-        double operating_freq; // TBD, more testing
+        // Public Variables
+        double operating_freq;
 
+        // Debugging
+        void debug(std::vector<double> values, std::string message);
 
 
     private:
@@ -54,8 +63,6 @@ class GaitPlanner
         double max_extend;
         double max_tangential;
 
-        double safe_bound_triangle;
-
         double body_width;
         double center_to_front;
         double center_to_back;
@@ -75,79 +82,39 @@ class GaitPlanner
         /**
          * Publishers and subscribers
          */
-        ros::Publisher sr_pub;
-        ros::Publisher sl_pub;
-        ros::Publisher ir_pub;
-        ros::Publisher il_pub;
+        ros::Publisher gait_pub;
 
         ros::Publisher debug_pub;
 
+        ros::Subscriber gait_sub;
         ros::Subscriber vel_sub;
+        ros::Subscriber reset_sub;
     
-        // #### State Variables ####
-
-        double x_vel;
-        double y_vel;
-        double theta_vel;
-        double turning_rad;
-        double total_len;
-        double step_pull_distance;
-
-        double step_vel;
-
+        // #### Gait Variables ####
+ 
         double walking_z;
-
-        double safe_bound;
-
-            // Note, these are relative to COM
-        double sr_x;
-        double sr_y;
-        double sr_z;
-
-        double sr_l;
-
-        double sl_x;
-        double sl_y;
-        double sl_z;
-
-        double sl_l;
-
-        double ir_x;   
-        double ir_y;
-        double ir_z;
-
-        double ir_l;
-
-        double il_x;
-        double il_y;
-        double il_z;
-
-        double il_l;
-
-        double sr_cx;
-        double sr_cy; 
-        double sr_cz; 
-
-        double sl_cx;
-        double sl_cy;
-        double sl_cz;
-
-        double ir_cx;
-        double ir_cy;
-        double ir_cz;
-
-        double il_cx;
-        double il_cy;
-        double il_cz;
-
-        double leg_delta;
-        double relative_step_rate;
-
         double step_height;
+        Gait gait_command;
+        Gait gait_current;
+        double x_vel;
+        double theta_vel;
+        double delta_dist;
+        double delta_theta;
+        double margin_dist;
+        double margin_theta;
+        bool on;
 
-        bool moving;
+        // #### Testing ####
+        double delta_angle;
+        double angle;
+        double radius;
+        double period;
+        double rot_freq;
+        ros::Publisher vel_pub;
 
-        State state;
 };
 
-double safe_inter(double xa, double xb, double ya, double yb);
+double double_lerp(double x1, double x2, double percent);
+Point point_lerp(Point p1, Point p2, double percent);
+Gait gait_lerp(Gait g1, Gait g2, double percent);
+Gait normalize_gait(Gait gait);

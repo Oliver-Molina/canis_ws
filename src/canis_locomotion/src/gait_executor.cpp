@@ -47,6 +47,7 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     il_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/leg/pos/inferior/left", 1000);
 
     pose_pub = nh_.advertise<robot_core::Gait>("/odometry/gait/current", 1000);
+    pose_norm_pub = nh_.advertise<robot_core::Gait>("/debug/gait", 1000);
 
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
 
@@ -71,6 +72,10 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     theta_vel = 0;
     delta_percent = 0;
 
+    // #### Testing ####
+    percent_dist = 0;
+    percent_theta = 0;
+
 }
 
 void GaitExecutor::Gait_CB(const robot_core::Gait::ConstPtr& gait) { 
@@ -84,8 +89,8 @@ void GaitExecutor::Gait_CB(const robot_core::Gait::ConstPtr& gait) {
     tf2::convert(gait_next.com.orientation, quat_tf2);
 
     double delta_theta = (quat_tf1 * quat_tf2.inverse()).getAngleShortestPath();
-    double percent_dist = (delta_dist == 0) ? 0 : x_vel / (delta_dist * operating_freq);
-    double percent_theta = (delta_theta == 0) ? 0 : theta_vel / (delta_theta * operating_freq);
+    percent_dist = (delta_dist == 0) ? 0 : x_vel / (delta_dist * operating_freq);
+    percent_theta = (delta_theta == 0) ? 0 : theta_vel / (delta_theta * operating_freq);
 
     delta_percent = std::max(percent_theta, percent_dist);
 }
@@ -144,8 +149,6 @@ void GaitExecutor::Command_IL() {
     il_pub.publish(il_msg);
     
 }
-
-
 void GaitExecutor::Init() {
 
     gait_current.sr.x = center_to_front;
@@ -206,6 +209,29 @@ void GaitExecutor::Command_Body() {
     GaitExecutor::Command_IL();
 
     pose_pub.publish(gait_raised_foot);
+    pose_norm_pub.publish(gait_normalized);
+}
+
+void GaitExecutor::debug(std::vector<double> values, std::string message) {
+    // Requires:
+    //  message have as many | as values in vector
+    //  not end on a | character
+    std::vector<std::string> split_message;
+    std::stringstream stream(message);
+    std::string segment;
+    while(std::getline(stream, segment, '|')) {
+        split_message.push_back(segment);
+    }
+    
+    std::stringstream ss;
+    for (int i = 0; i < values.size(); i++) {
+        ss << split_message[i] << values[i];
+    }
+    ss << split_message[values.size()];
+
+    std::string str = ss.str();
+    debug_msg.data = str.c_str();
+    debug_pub.publish(debug_msg);
 }
 
 double double_lerp(double x1, double x2, double percent) {

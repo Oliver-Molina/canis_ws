@@ -38,6 +38,9 @@ class GaitExecutor {
         void Command_Body();
         void Init();
 
+        // Debugging
+        void debug(std::vector<double> values, std::string message);
+
         double operating_freq; // TBD, more testing
 
 
@@ -85,6 +88,7 @@ class GaitExecutor {
         ros::Publisher il_pub;
 
         ros::Publisher pose_pub;
+        ros::Publisher pose_norm_pub;
 
         ros::Publisher debug_pub;
 
@@ -105,6 +109,10 @@ class GaitExecutor {
         double delta_percent;
 
         Point sr, sl, ir, il;
+
+        // #### Testing ####
+        double percent_dist;
+        double percent_theta;
 
 };
 
