@@ -207,6 +207,12 @@ include_directories(
 
 add_executable(canis_locomotion_exe src/canis_locomotion_node.cpp src/canis_locomotion.cpp)
 target_link_libraries(canis_locomotion_exe ${catkin_LIBRARIES})
+add_dependencies(canis_locomotion_exe ${catkin_EXPORTED_TARGETS})
+
 add_executable(gait_executor src/gait_executor_node.cpp src/gait_executor.cpp)
 target_link_libraries(gait_executor ${catkin_LIBRARIES})
 add_dependencies(gait_executor ${catkin_EXPORTED_TARGETS})
+
+add_executable(gait_planner src/gait_planner_node.cpp src/gait_planner.cpp)
+target_link_libraries(gait_planner ${catkin_LIBRARIES})
+add_dependencies(gait_planner ${catkin_EXPORTED_TARGETS})
