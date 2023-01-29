@@ -35,7 +35,7 @@
 
 GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     
-    gait_sub = nh_.subscribe<robot_core::GaitVec>("/path/gait", 1000, &GaitExecutor::Gait_Replace_CB, this);
+    gait_sub = nh_.subscribe<robot_core::Gait>("/path/gait", 1000, &GaitExecutor::Gait_CB, this);
     vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
     reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitExecutor::Reset_CB, this);
 
@@ -62,34 +62,40 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     gait_vec = {};
     gait_current;
     gait_next;
-    percent_step = 0;
+    percent_step = 0.;
     x_vel = 0;
     theta_vel = 0;
+    gait_index = 0;
+
+
 
     // #### Leg Positions & Variables ####
-    sr_x = 0; // Superior Right X (Relative to Center of Mass)
-    sr_y = 0; // Superior Right Y (Relative to Center of Mass)
-    sr_z = 0; // Superior Right Z (Relative to Center of Mass)
+    sr.x = 0; // Superior Right X (Relative to Center of Mass)
+    sr.y = 0; // Superior Right Y (Relative to Center of Mass)
+    sr.z = 0; // Superior Right Z (Relative to Center of Mass)
 
-    sl_x = 0;
-    sl_y = 0;
-    sl_z = 0;
+    sl.x = 0;
+    sl.y = 0;
+    sl.z = 0;
 
-    ir_x = 0;
-    ir_y = 0;
-    ir_z = 0;
+    ir.x = 0;
+    ir.y = 0;
+    ir.z = 0;
 
-    il_x = 0;
-    il_y = 0;
-    il_z = 0;
+    il.x = 0;
+    il.y = 0;
+    il.z = 0;
+
 }
 
 void GaitExecutor::Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait) { 
-    gait_vec = gait->gaits;
+    //gait_vec = gait->gaits;
+    //gait_current = gait_vec[0];
+    //gait_next = gait_vec[1];
 }
 
-void GaitExecutor::Gait_Add_CB(const robot_core::Gait::ConstPtr& gait) { 
-    //gait_vec.push_back(gait);
+void GaitExecutor::Gait_CB(const robot_core::Gait::ConstPtr& gait) { 
+    gait_next = *gait;//{{gait->sr.x, gait->sr.y, gait->sr.z}, {gait->sl.x, gait->sl.y, gait->sl.z}, {gait->ir.x, gait->ir.y, gait->ir.z}, {gait->il.x, gait->il.y, gait->il.z}, {gait->com.x, gait->com.y, gait->com.z}, gait->foot};
 }
 
 void GaitExecutor::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) { 
@@ -108,9 +114,9 @@ void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
 
 void GaitExecutor::Command_SR() {
     
-    sr_msg.point.x = sr_x - center_to_front;
-    sr_msg.point.y = sr_y + body_width / 2.0;
-    sr_msg.point.z = sr_z;
+    sr_msg.point.x = sr.x - center_to_front;
+    sr_msg.point.y = sr.y + body_width / 2.0;
+    sr_msg.point.z = sr.z;
 
     sr_msg.header.stamp = ros::Time::now();
     sr_pub.publish(sr_msg);
@@ -118,9 +124,9 @@ void GaitExecutor::Command_SR() {
 }
 void GaitExecutor::Command_SL() {
 
-    sl_msg.point.x = sl_x - center_to_front;
-    sl_msg.point.y = sl_y - body_width / 2.0;
-    sl_msg.point.z = sl_z;
+    sl_msg.point.x = sl.x - center_to_front;
+    sl_msg.point.y = sl.y - body_width / 2.0;
+    sl_msg.point.z = sl.z;
 
     sl_msg.header.stamp = ros::Time::now();
     sl_pub.publish(sl_msg);
@@ -128,9 +134,9 @@ void GaitExecutor::Command_SL() {
 }
 void GaitExecutor::Command_IR() {
     
-    ir_msg.point.x = ir_x + center_to_back;
-    ir_msg.point.y = ir_y + body_width / 2.0;
-    ir_msg.point.z = ir_z;
+    ir_msg.point.x = ir.x + center_to_back;
+    ir_msg.point.y = ir.y + body_width / 2.0;
+    ir_msg.point.z = ir.z;
 
     ir_msg.header.stamp = ros::Time::now();
     ir_pub.publish(ir_msg);
@@ -138,9 +144,9 @@ void GaitExecutor::Command_IR() {
 }
 void GaitExecutor::Command_IL() {
     
-    il_msg.point.x = il_x + center_to_back;
-    il_msg.point.y = il_y - body_width / 2.0;
-    il_msg.point.z = il_z;
+    il_msg.point.x = il.x + center_to_back;
+    il_msg.point.y = il.y - body_width / 2.0;
+    il_msg.point.z = il.z;
 
     il_msg.header.stamp = ros::Time::now();
     il_pub.publish(il_msg);
@@ -149,21 +155,21 @@ void GaitExecutor::Command_IL() {
 
 
 void GaitExecutor::Move_Body(double x, double y) {
-    sr_x = center_to_front - x;
-    sr_y = -body_width / 2.0 - y;
-    sr_z = -walking_z;
+    sr.x = center_to_front - x;
+    sr.y = -body_width / 2.0 - y;
+    sr.z = -walking_z;
 
-    sl_x = center_to_front - x;
-    sl_y = body_width / 2.0 - y;
-    sl_z = -walking_z;
+    sl.x = center_to_front - x;
+    sl.y = body_width / 2.0 - y;
+    sl.z = -walking_z;
 
-    ir_x = -center_to_back - x;
-    ir_y = -body_width / 2.0 - y;
-    ir_z = -walking_z;
+    ir.x = -center_to_back - x;
+    ir.y = -body_width / 2.0 - y;
+    ir.z = -walking_z;
 
-    il_x = -center_to_back - x;
-    il_y = body_width / 2.0 - y;
-    il_z = -walking_z;
+    il.x = -center_to_back - x;
+    il.y = body_width / 2.0 - y;
+    il.z = -walking_z;
 
     GaitExecutor::Command_SR();
     GaitExecutor::Command_SL();
@@ -173,7 +179,43 @@ void GaitExecutor::Move_Body(double x, double y) {
 }
 
 void GaitExecutor::Vel_Update(const ros::TimerEvent& event) {
+    double delta_dist = 0; 
+    
+    if (gait_current.foot.data != 0) {
+        delta_dist = gait_next.sr.x - gait_current.sr.x; 
+    }
 
+    else {
+        delta_dist = gait_next.sl.x - gait_current.sl.x; 
+    }
+
+    double dpercent = x_vel / (delta_dist * operating_freq);
+ 
+    if (gait_current == gait_next) { // stop mode
+
+    }
+
+    else if (percent_step >= 1) {   // change gait
+        percent_step = 0;
+        gait_current = gait_next;
+    }
+
+    else {                          // continue gait
+        percent_step += dpercent;
+        Command_Body();
+    }
+
+    // Two cases, middle of step so percent is incremented
+    // end of step where next step is taken, legs are stepped up and down
+}
+
+void GaitExecutor::Command_Body() {
+    Gait store = gait_lerp(gait_current, gait_next, percent_step);
+
+    sr = store.sr;
+    sl = store.sl;
+    ir = store.ir;
+    il = store.il;
 }
 
 double double_lerp(double x1, double x2, double percent) {
