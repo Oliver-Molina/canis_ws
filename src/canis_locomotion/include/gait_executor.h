@@ -11,24 +11,6 @@
 #include <robot_core/Gait.h>
 #include <robot_core/GaitVec.h>
 
-
-enum Foot {SR, SL, IR, IL};
-
-/*struct Point {
-    double x;
-    double y;
-    double z;
-};
-
-struct Gait {
-    Point sr;
-    Point sl;
-    Point ir;
-    Point il;
-    Point com;
-    Foot foot;
-};*/
-
 using namespace robot_core;
 using namespace geometry_msgs;
 
@@ -46,16 +28,15 @@ class GaitExecutor {
         void Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
         void Reset_CB(const std_msgs::Bool::ConstPtr& reset);
 
-        void Vel_Update(const ros::TimerEvent& event);
+        void Pose_Update(const ros::TimerEvent& event);
 
         // Operation Methods
         void Command_SR();
         void Command_SL();
         void Command_IR();
         void Command_IL();
-
-        void Move_Body(double x, double y);
         void Command_Body();
+        void Init();
 
         double operating_freq; // TBD, more testing
 
@@ -103,40 +84,25 @@ class GaitExecutor {
         ros::Publisher ir_pub;
         ros::Publisher il_pub;
 
+        ros::Publisher pose_pub;
+
         ros::Publisher debug_pub;
 
         ros::Subscriber gait_sub;
         ros::Subscriber vel_sub;
         ros::Subscriber reset_sub;
     
-        // #### State Variables ####
-
-        std::vector<robot_core::Gait> gait_vec;
+        // #### Gait Variables ####
  
         double walking_z;
         double step_height;
+        Gait gait_normalized;
         Gait gait_current;
         Gait gait_next;
         double percent_step;
         double x_vel;
         double theta_vel;
-        int gait_index;
-
-        double sr_x;
-        double sr_y;
-        double sr_z;
-
-        double sl_x;
-        double sl_y;
-        double sl_z;
-
-        double ir_x;   
-        double ir_y;
-        double ir_z;
-
-        double il_x;
-        double il_y;
-        double il_z;
+        double delta_percent;
 
         Point sr, sl, ir, il;
 
@@ -145,3 +111,5 @@ class GaitExecutor {
 double double_lerp(double x1, double x2, double percent);
 Point point_lerp(Point p1, Point p2, double percent);
 Gait gait_lerp(Gait g1, Gait g2, double percent);
+Gait normalize_gait(Gait gait);
+Gait gait_raise_foot(Gait gait, double step_height);
