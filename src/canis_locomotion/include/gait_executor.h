@@ -86,6 +86,7 @@ class GaitExecutor {
         ros::Publisher sl_pub;
         ros::Publisher ir_pub;
         ros::Publisher il_pub;
+        ros::Publisher percent_pub;
 
         ros::Publisher pose_pub;
         ros::Publisher pose_norm_pub;
@@ -107,6 +108,8 @@ class GaitExecutor {
         double x_vel;
         double theta_vel;
         double delta_percent;
+
+        std_msgs::Float64 percent_msg;
 
         Point sr, sl, ir, il;
 

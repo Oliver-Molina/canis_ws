@@ -14,6 +14,8 @@
 using namespace robot_core;
 using namespace geometry_msgs;
 
+enum Mode {Forwards, Turning, Halted};
+
 class GaitPlanner {
     public:
         // Constructor
@@ -26,6 +28,7 @@ class GaitPlanner {
         void Gait_CB(const robot_core::Gait::ConstPtr& gait);
         void Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
         void Reset_CB(const std_msgs::Bool::ConstPtr& reset);
+        void Percent_CB(const std_msgs::Float64::ConstPtr& percent_msg);
 
         void Pose_Update(const ros::TimerEvent& event);
 
@@ -80,15 +83,17 @@ class GaitPlanner {
 
 
         /**
-         * Publishers and subscribers
+         * Publishers, subscribers & messages
          */
         ros::Publisher gait_pub;
-
         ros::Publisher debug_pub;
 
         ros::Subscriber gait_sub;
         ros::Subscriber vel_sub;
         ros::Subscriber reset_sub;
+        ros::Subscriber percent_sub;
+
+        std_msgs::Float64 percent_msg;
     
         // #### Gait Variables ####
  
@@ -100,9 +105,10 @@ class GaitPlanner {
         double theta_vel;
         double delta_dist;
         double delta_theta;
-        double margin_dist;
-        double margin_theta;
+        double margin;
         bool on;
+        double percent;
+        Mode mode;
 
         // #### Testing ####
         double delta_angle;

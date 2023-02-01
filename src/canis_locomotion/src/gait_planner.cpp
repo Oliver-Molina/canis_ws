@@ -37,6 +37,7 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     gait_sub = nh_.subscribe<robot_core::Gait>("/odometry/gait/current", 1000, &GaitPlanner::Gait_CB, this);
     vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/velocity", 1000, &GaitPlanner::Vel_CB, this);
     reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitPlanner::Reset_CB, this);
+    percent_sub = nh_.subscribe<std_msgs::Float64>("/odometry/percent", 1000, &GaitPlanner::Percent_CB, this);
 
     gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/next", 1000);
 
@@ -61,9 +62,10 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     theta_vel = 0;
     delta_dist = 0;
     delta_theta = 0;
-    margin_dist = 0.0005;
-    margin_theta = 0.001;
+    margin = 1.0 - 0.0005;
     on = false;
+    percent = 0;
+    mode = Mode::Halted;
 
     // #### Testing ####
     delta_angle = 0.05;
@@ -76,15 +78,35 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
 
 void GaitPlanner::Gait_CB(const robot_core::Gait::ConstPtr& gait) { 
     gait_current = *gait;
-    Calc_Deltas();
-    
-    debug({angle}, "Ang: | ");
 }
 
 void GaitPlanner::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) { 
 
     x_vel = twist->twist.linear.x;
     theta_vel = twist->twist.angular.z;
+
+    // Notes: When Halting, no state changes allowed till squared off
+
+    if (x_vel == 0 & theta_vel == 0) {
+        // FWD  -> Halt
+        // Turn -> Halt
+        // Halt -> No Change
+    }
+    if (x_vel == 0 & theta_vel != 0) {
+        // FWD  -> Halt -> Turn
+        // Turn -> No Change
+        // Halt -> Turn
+    }
+    if (x_vel != 0 & theta_vel == 0) {
+        // FWD  -> No Change
+        // Turn -> Halt -> FWD
+        // Halt -> FWD
+    }
+    if (x_vel != 0 & theta_vel != 0) {
+        // FWD  -> Halt
+        // Turn -> Halt
+        // Halt -> No Change
+    }
 
 }
 
@@ -99,6 +121,10 @@ void GaitPlanner::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
     on = reset->data;
     gait_pub.publish(gait_command);
 
+}
+
+void GaitPlanner::Percent_CB(const std_msgs::Float64::ConstPtr& percent_msg) {
+    percent = percent_msg->data;
 }
 
 
@@ -134,14 +160,15 @@ void GaitPlanner::Init() {
 }
 
 void GaitPlanner::Pose_Update(const ros::TimerEvent& event) {
-    Calc_Deltas();
-    if (delta_dist < margin_dist && delta_theta < margin_theta && on) {
-        gait_command.com.position.x = radius * cos(angle);
+    if (percent >= margin) {
+        /*gait_command.com.position.x = radius * cos(angle);
         gait_command.com.position.y = radius * sin(angle);
 
         gait_pub.publish(gait_command);
         angle += delta_angle;
-        if (angle > 2 * M_PI) angle -= 2 * M_PI;
+        if (angle > 2 * M_PI) angle -= 2 * M_PI;*/
+
+        // 
     }
     
     // #### Testing #### !Remove before merge
@@ -150,18 +177,6 @@ void GaitPlanner::Pose_Update(const ros::TimerEvent& event) {
     twist_msg.twist.linear.x = 0.01;
     twist_msg.twist.angular.z = 0.01;
     vel_pub.publish(twist_msg);
-}
-
-void GaitPlanner::Calc_Deltas() {
-    delta_dist = sqrt((gait_command.com.position.x-gait_current.com.position.x)*(gait_command.com.position.x-gait_current.com.position.x)+
-                      (gait_command.com.position.y-gait_current.com.position.y)*(gait_command.com.position.y-gait_current.com.position.y)+
-                      (gait_command.com.position.z-gait_current.com.position.z)*(gait_command.com.position.z-gait_current.com.position.z));
-
-    tf2::Quaternion quat_tf1, quat_tf2;
-    tf2::convert(gait_current.com.orientation, quat_tf1);
-    tf2::convert(gait_command.com.orientation, quat_tf2);
-
-    delta_theta = (quat_tf1 * quat_tf2.inverse()).getAngleShortestPath();
 }
 
 void GaitPlanner::debug(std::vector<double> values, std::string message) {

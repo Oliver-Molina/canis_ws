@@ -7,6 +7,7 @@
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
 #include <robot_core/Gait.h>
 #include <robot_core/GaitVec.h>
 #include <tf/tf.h>
@@ -48,6 +49,7 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
 
     pose_pub = nh_.advertise<robot_core::Gait>("/odometry/gait/current", 1000);
     pose_norm_pub = nh_.advertise<robot_core::Gait>("/debug/gait", 1000);
+    percent_pub = nh_.advertise<std_msgs::Float64>("/odometry/percent", 1000);
 
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
 
@@ -191,8 +193,10 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
         gait_current = gait_next;
     }
 
-    else {                         
+    else {           
+        percent_msg.data = percent_step;              
         percent_step += delta_percent;
+        percent_pub.publish(percent_msg);
     }
     Command_Body();
 
