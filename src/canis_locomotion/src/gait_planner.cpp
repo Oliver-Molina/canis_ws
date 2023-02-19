@@ -6,11 +6,15 @@
 #include <sstream>
 
 #include <ros/ros.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <std_msgs/Bool.h>
 #include <robot_core/Gait.h>
 #include <robot_core/GaitVec.h>
+#include <robot_core/PathQuat.h>
+//#include <robot_core/PathQuat.h>
 #include <tf/tf.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -65,7 +69,9 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     margin = 1.0 - 0.0005;
     on = false;
     percent = 0;
-    mode = Mode::Halted;
+    mode = Mode::Halt;
+    path = {};
+    gait_queue = {};
 
     // #### Testing ####
     delta_angle = 0.05;
@@ -78,6 +84,7 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
 
 void GaitPlanner::Gait_CB(const robot_core::Gait::ConstPtr& gait) { 
     gait_current = *gait;
+    pose_current = gait_current.com;
 }
 
 void GaitPlanner::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) { 
@@ -85,29 +92,12 @@ void GaitPlanner::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) {
     x_vel = twist->twist.linear.x;
     theta_vel = twist->twist.angular.z;
 
-    // Notes: When Halting, no state changes allowed till squared off
+}
 
-    if (x_vel == 0 & theta_vel == 0) {
-        // FWD  -> Halt
-        // Turn -> Halt
-        // Halt -> No Change
-    }
-    if (x_vel == 0 & theta_vel != 0) {
-        // FWD  -> Halt -> Turn
-        // Turn -> No Change
-        // Halt -> Turn
-    }
-    if (x_vel != 0 & theta_vel == 0) {
-        // FWD  -> No Change
-        // Turn -> Halt -> FWD
-        // Halt -> FWD
-    }
-    if (x_vel != 0 & theta_vel != 0) {
-        // FWD  -> Halt
-        // Turn -> Halt
-        // Halt -> No Change
-    }
-
+void GaitPlanner::Path_CB(const PathQuat::ConstPtr& path) {
+    this->path = (*path).poses;
+    gait_queue.clear();
+    calculatePath();
 }
 
 void GaitPlanner::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
@@ -125,37 +115,19 @@ void GaitPlanner::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
 
 void GaitPlanner::Percent_CB(const std_msgs::Float64::ConstPtr& percent_msg) {
     percent = percent_msg->data;
+    if (percent > margin && !gait_queue.empty()) {
+        gait_pub.publish(gait_queue[0]);
+        gait_queue.erase(gait_queue.begin());
+    }
 }
 
 
 void GaitPlanner::Init() {
 
-    gait_current.sr.x = center_to_front;
-    gait_current.sr.y = -body_width / 2.0;
-    gait_current.sr.z = 0;
-
-    gait_current.sl.x = center_to_front;
-    gait_current.sl.y = body_width / 2.0;
-    gait_current.sl.z = 0;
-
-    gait_current.ir.x = -center_to_back;
-    gait_current.ir.y = -body_width / 2.0;
-    gait_current.ir.z = 0;
-
-    gait_current.il.x = -center_to_back;
-    gait_current.il.y = body_width / 2.0;
-    gait_current.il.z = 0;
-
-    gait_current.com.position.x = 0;
-    gait_current.com.position.y = 0;
-    gait_current.com.position.z = walking_z;
-
-    gait_current.com.orientation.x = 0;
-    gait_current.com.orientation.y = 0;
-    gait_current.com.orientation.z = 0;
-    gait_current.com.orientation.w = 1;
-
+    gait_current = zeroGait();
     gait_command = gait_current;
+    pose_current = zeroPose();
+    pose_command = pose_current;
 
 }
 
@@ -170,15 +142,161 @@ void GaitPlanner::Pose_Update(const ros::TimerEvent& event) {
 
         // 
     }
-    
-    // #### Testing #### !Remove before merge
-    //debug({angle}, "Ang: | ");
-    TwistStamped twist_msg;
-    twist_msg.twist.linear.x = 0.01;
-    twist_msg.twist.angular.z = 0.01;
-    vel_pub.publish(twist_msg);
 }
 
+std::vector<Gait> GaitPlanner::turn(double turn_rad) {
+
+}
+std::vector<Gait> GaitPlanner::halt() { // Bad practice fix later, nick is lazy
+    std::vector<Gait> out;
+    out.push_back(zeroGait());
+    return out;
+}
+std::vector<Gait> GaitPlanner::walk(double dist) {
+    
+}
+geometry_msgs::Pose GaitPlanner::safePose(double dist) {
+    
+}
+Gait GaitPlanner::zeroGait() {
+    
+    Gait out;
+
+    out.sr.x = center_to_front;
+    out.sr.y = -body_width / 2.0;
+    out.sr.z = 0;
+
+    out.sl.x = center_to_front;
+    out.sl.y = body_width / 2.0;
+    out.sl.z = 0;
+
+    out.ir.x = -center_to_back;
+    out.ir.y = -body_width / 2.0;
+    out.ir.z = 0;
+
+    out.il.x = -center_to_back;
+    out.il.y = body_width / 2.0;
+    out.il.z = 0;
+
+    out.com.position.x = 0;
+    out.com.position.y = 0;
+    out.com.position.z = walking_z;
+
+    out.com.orientation.x = 0;
+    out.com.orientation.y = 0;
+    out.com.orientation.z = 0;
+    out.com.orientation.w = 1;
+
+    return out;
+}
+geometry_msgs::Pose GaitPlanner::zeroPose() {
+    geometry_msgs::Pose out;
+
+    out.position.x = 0;
+    out.position.y = 0;
+    out.position.z = walking_z;
+
+    out.orientation.x = 0;
+    out.orientation.y = 0;
+    out.orientation.z = 0;
+    out.orientation.w = 1;
+
+    return out;
+}
+Gait GaitPlanner::transformGait(Gait gait, Pose transform) {
+
+}
+Gait GaitPlanner::normalize_gait(Gait gait) {
+    Gait out = gait;
+
+    // Shift to origin first
+    out.sr.x -= gait.com.position.x;
+    out.sr.y -= gait.com.position.y;
+    out.sr.z -= gait.com.position.z;
+
+    out.sl.x -= gait.com.position.x;
+    out.sl.y -= gait.com.position.y;
+    out.sl.z -= gait.com.position.z;
+
+    out.ir.x -= gait.com.position.x;
+    out.ir.y -= gait.com.position.y;
+    out.ir.z -= gait.com.position.z;
+
+    out.il.x -= gait.com.position.x;
+    out.il.y -= gait.com.position.y;
+    out.il.z -= gait.com.position.z;
+
+    out.com.position.x = 0;
+    out.com.position.y = 0;
+    out.com.position.z = 0;
+
+    // Rotate Each Foot  
+    tf::Quaternion q(
+        gait.com.orientation.x,
+        gait.com.orientation.y,
+        gait.com.orientation.z,
+        gait.com.orientation.w);
+    tf::Matrix3x3 m(q);
+
+    tf::Vector3 sr_vec(out.sr.x, out.sr.y, out.sr.z);
+    tf::Vector3 sl_vec(out.sl.x, out.sl.y, out.sl.z);
+    tf::Vector3 ir_vec(out.ir.x, out.ir.y, out.ir.z);
+    tf::Vector3 il_vec(out.il.x, out.il.y, out.il.z);
+    
+    tf::Vector3 sr_norm, sl_norm, ir_norm, il_norm;
+
+    sr_norm = m.inverse()*sr_vec;
+    sl_norm = m.inverse()*sl_vec;
+    ir_norm = m.inverse()*ir_vec;
+    il_norm = m.inverse()*il_vec;
+
+    out.sr.x = sr_norm.getX();
+    out.sr.y = sr_norm.getY();
+    out.sr.z = sr_norm.getZ();
+
+    out.sl.x = sl_norm.getX();
+    out.sl.y = sl_norm.getY();
+    out.sl.z = sl_norm.getZ();
+
+    out.ir.x = ir_norm.getX();
+    out.ir.y = ir_norm.getY();
+    out.ir.z = ir_norm.getZ();
+
+    out.il.x = il_norm.getX();
+    out.il.y = il_norm.getY();
+    out.il.z = il_norm.getZ();
+
+    out.com.orientation.x = 0;
+    out.com.orientation.y = 0;
+    out.com.orientation.z = 0;
+    out.com.orientation.w = 1;
+
+    return out;
+}
+
+void GaitPlanner::calculatePath() {
+    for (int path_index = 0; path_index < path.size(); path_index++) {
+        auto vec = pathCommand(path[path_index], path[path_index - 1]);
+        gait_queue.insert( gait_queue.end(), vec.begin(), vec.end() );
+    }
+}
+
+std::vector<Gait> GaitPlanner::pathCommand(nav_msgs::Odometry end, nav_msgs::Odometry start) {
+    auto translated_end = translate(end, start);
+    auto dist = translated_end.pose.pose.position.x;
+    auto rad = translated_end.twist.twist.angular.z;
+    if (dist == 0 && rad != 0) {
+        return turn(rad);
+    }
+    else if (dist != 0 && rad == 0) {
+        return walk(dist);
+    }
+}
+
+nav_msgs::Odometry translate(nav_msgs::Odometry end, nav_msgs::Odometry start) {
+
+}
+/*
 void GaitPlanner::debug(std::vector<double> values, std::string message) {
     // Requires:
     //  message have as many | as values in vector
@@ -186,18 +304,38 @@ void GaitPlanner::debug(std::vector<double> values, std::string message) {
     std::vector<std::string> split_message;
     std::stringstream stream(message);
     std::string segment;
+    int char_count = 0;
     while(std::getline(stream, segment, '|')) {
         split_message.push_back(segment);
+        char_count++;
     }
     
     std::stringstream ss;
-    for (int i = 0; i < values.size(); i++) {
-        ss << split_message[i] << values[i];
+    if (values.size() != char_count) {
+        ss << "[Debug Error] Message: (";
+        for (int i = 0; i < values.size(); i++) {
+            ss << split_message[i] << "|";
+        }
+        ss << " & Values: ";
+        for (int i = 0; i < values.size(); i++) {
+            ss << values[i] << " ";
+        }
+        ss << "don't match." << std::endl;
+
+        std::string str = ss.str();
+        debug_msg.data = str.c_str();
+        debug_pub.publish(debug_msg);
     }
-    ss << split_message[values.size()];
+    else {
+        for (int i = 0; i < values.size(); i++) {
+            ss << split_message[i] << values[i];
+        }
+        ss << split_message[values.size()];
 
-    std::string str = ss.str();
-    debug_msg.data = str.c_str();
-    debug_pub.publish(debug_msg);
+        std::string str = ss.str();
+        debug_msg.data = str.c_str();
+        debug_pub.publish(debug_msg);
+    }
 }
-
+std::vector<Gait> 
+*/

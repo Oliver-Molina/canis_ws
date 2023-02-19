@@ -205,7 +205,7 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
 void GaitExecutor::Command_Body() {
     Gait gait_linterped = gait_lerp(gait_current, gait_next, percent_step);
     Gait gait_raised_foot = gait_raise_foot(gait_linterped, step_height);
-    Gait gait_normalized = normalize_gait(gait_raised_foot);
+    //Gait gait_normalized = normalize_gait(gait_raised_foot);
 
     GaitExecutor::Command_SR();
     GaitExecutor::Command_SL();
