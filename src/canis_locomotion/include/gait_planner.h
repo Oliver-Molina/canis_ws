@@ -130,6 +130,7 @@ class GaitPlanner {
         double percent;
         Mode mode;
         std::vector<nav_msgs::Odometry> path;
+        double step_turn_rad;
 
 
         // #### Standard Gaits ####

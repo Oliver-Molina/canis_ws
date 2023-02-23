@@ -74,6 +74,7 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     mode = Mode::Halt;
     path = {};
     gait_queue = {};
+    step_turn_rad = 2 * M_PI / 48;
 
     // #### Testing ####
     delta_angle = 0.05;
@@ -424,9 +425,8 @@ Gait GaitPlanner::normalize_gait(Gait gait) {
 }
 
 void GaitPlanner::calculatePath() {
-    for (int path_index = 0; path_index < path.size(); path_index++) {
-        auto vec = pathCommand(path[path_index], path[path_index - 1]);
-        gait_queue.insert( gait_queue.end(), vec.begin(), vec.end() );
+    for (int path_index = 1; path_index < path.size(); path_index++) {
+        pathCommand(path[path_index], path[path_index - 1]);
     }
 }
 
@@ -435,10 +435,10 @@ std::vector<Gait> GaitPlanner::pathCommand(nav_msgs::Odometry end, nav_msgs::Odo
     auto dist = translated_end.pose.pose.position.x;
     auto rad = translated_end.twist.twist.angular.z;
     if (dist == 0 && rad != 0) {
-        return turn(rad);
+        turn(rad);
     }
     else if (dist != 0 && rad == 0) {
-        return walk(dist);
+        walk(dist);
     }
 }
 
@@ -477,14 +477,13 @@ void walk(double dist) {
         switch(mode) {
             case Mode::Halt: {
                 gait_queue.push(il_fwd);
-                mode = Mode::SL;
+                mode = Mode::SR; //Next Step
             }
             break;
 
             case Mode::SR: {
                 gait_queue.push(sr_fwd);
                 mode = Mode::IL;
-
             }
             break;
 
@@ -503,11 +502,8 @@ void walk(double dist) {
             case Mode::IL: {
                 gait_queue.push(il_fwd);
                 mode = Mode::SL;
-
             }
             break;
-
-
 
             default: {
 
@@ -516,6 +512,95 @@ void walk(double dist) {
             }
         }
         steps_taken++;
+    }
+}
+
+void turn(double rad) {
+    double steps_to_take = rad / step_turn_rad;
+    int steps_taken = 0;
+    if (rad > = 0) {
+        while (steps_taken < steps_to_take) {
+            switch(mode) {
+                case Mode::Halt: {
+                    gait_queue.push(sr_turn);
+                    mode = Mode::SR;
+                }
+                break;
+
+                case Mode::SR: {
+                    gait_queue.push(sr_turn);
+                    mode = Mode::IL;
+                }
+                break;
+
+                case Mode::SL: {
+                    gait_queue.push(sl_turn);
+                    mode = Mode::IR;
+                }
+                break;
+
+                case Mode::IR: {
+                    gait_queue.push(ir_turn);
+                    mode = Mode::SR;
+                }
+                break;
+
+                case Mode::IL: {
+                    gait_queue.push(il_turn);
+                    mode = Mode::SL;
+                }
+                break;
+
+                default: {
+
+
+        
+                }
+            }
+            steps_taken++;
+        }
+    }
+    else {
+        while (steps_taken < steps_to_take) {
+            switch(mode) {
+                case Mode::Halt: {
+                    //gait_queue.push(sr_turn);
+                    //mode = Mode::SR;
+                }
+                break;
+
+                case Mode::SR: {
+                    //gait_queue.push(sr_turn);
+                    //mode = Mode::IL;
+                }
+                break;
+
+                case Mode::SL: {
+                    //gait_queue.push(sl_turn);
+                    //mode = Mode::IR;
+                }
+                break;
+
+                case Mode::IR: {
+                    //gait_queue.push(ir_turn);
+                    //mode = Mode::SR;
+                }
+                break;
+
+                case Mode::IL: {
+                    //gait_queue.push(il_turn);
+                    //mode = Mode::SL;
+                }
+                break;
+
+                default: {
+
+
+        
+                }
+            }
+            steps_taken++;
+        }
     }
 }
 /*
