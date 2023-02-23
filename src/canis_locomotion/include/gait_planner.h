@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <queue>
 
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
@@ -19,7 +20,7 @@
 using namespace robot_core;
 using namespace geometry_msgs;
 
-enum Mode {Halt, SR_F, SL_F, IR_F, IL_F, SR_T, SL_T, IR_T, IL_T};
+enum Mode {Halt, SR, SL, IR, IL};
 
 class GaitPlanner {
     public:
@@ -55,7 +56,7 @@ class GaitPlanner {
         Gait transformGait(Gait gait, Pose transform);
         Gait normalize_gait(Gait gait);
         std::vector<Gait> pathCommand(nav_msgs::Odometry end, nav_msgs::Odometry start);
-
+        void InitializeGaits(); 
 
         // Public Variables
         double operating_freq;
@@ -117,7 +118,7 @@ class GaitPlanner {
         double step_height;
         Gait gait_command;
         Gait gait_current;
-        std::vector<Gait> gait_queue;
+        std::queue<Gait> gait_queue;
         geometry_msgs::Pose pose_command;
         geometry_msgs::Pose pose_current;
         double x_vel;
@@ -129,6 +130,21 @@ class GaitPlanner {
         double percent;
         Mode mode;
         std::vector<nav_msgs::Odometry> path;
+
+
+        // #### Standard Gaits ####
+        
+        Gait sr_fwd;
+        Gait sl_fwd;
+        Gait ir_fwd;
+        Gait il_fwd;
+
+        Gait sr_turn;
+        Gait sl_turn;
+        Gait ir_turn;
+        Gait il_turn;
+
+        Gait halt;
 
         // #### Testing ####
         double delta_angle;

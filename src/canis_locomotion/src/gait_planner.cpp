@@ -38,9 +38,11 @@
 
 GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     
-    gait_sub = nh_.subscribe<robot_core::Gait>("/odometry/gait/current", 1000, &GaitPlanner::Gait_CB, this);
-    vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/velocity", 1000, &GaitPlanner::Vel_CB, this);
-    reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitPlanner::Reset_CB, this);
+    //gait_sub = nh_.subscribe<robot_core::Gait>("/odometry/gait/current", 1000, &GaitPlanner::Gait_CB, this);
+    //vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/velocity", 1000, &GaitPlanner::Vel_CB, this);
+    //reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitPlanner::Reset_CB, this);
+    
+    
     percent_sub = nh_.subscribe<std_msgs::Float64>("/odometry/percent", 1000, &GaitPlanner::Percent_CB, this);
 
     gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/next", 1000);
@@ -80,6 +82,151 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     period = 2 * M_PI * radius / x_vel;
     rot_freq = 1 / period;
     vel_pub = nh_.advertise<geometry_msgs::TwistStamped>("/command/velocity", 1000);
+}
+
+
+// Standard Gaits: SR, SL, IR, IL, Halt
+void GaitPlanner::InitializeGaits() {
+    double half_width = body_width / 2;
+    double eighth_len = (center_to_front + center_to_back) / 8;
+    
+    // SR Gait Forward
+    sr_fwd.sr.x = eighth_len;
+    sr_fwd.sr.y = -half_width;
+    sr_fwd.sr.z = 0;
+    sr_fwd.sl.x = 3 * eighth_len;
+    sr_fwd.sl.y = half_width;
+    sr_fwd.sl.z = 0;
+    sr_fwd.ir.x = -eighth_len;
+    sr_fwd.ir.y = -half_width;
+    sr_fwd.ir.z = 0;
+    sr_fwd.il.x = -3 * eighth_len;
+    sr_fwd.il.y = half_width;
+    sr_fwd.il.z = 0;
+    sr_fwd.step = 1;
+
+    // SL Gait Forward
+    sl_fwd.sr.x = 3 * eighth_len;
+    sl_fwd.sr.y = -half_width;
+    sl_fwd.sr.z = 0;
+    sl_fwd.sl.x = eighth_len;
+    sl_fwd.sl.y = half_width;
+    sl_fwd.sl.z = 0;
+    sl_fwd.ir.x = -3 * eighth_len;
+    sl_fwd.ir.y = -half_width;
+    sl_fwd.ir.z = 0;
+    sl_fwd.il.x = -eighth_len;
+    sl_fwd.il.y = half_width;
+    sl_fwd.il.z = 0;
+    sl_fwd.step = 2;
+
+    // IR Gait Forward
+    ir_fwd.sr.x = 2 * eighth_len
+    ir_fwd.sr.y = -half_width;
+    ir_fwd.sr.z = 0;
+    ir_fwd.sl.x = 4 * eighth_len
+    ir_fwd.sl.y = half_width;
+    ir_fwd.sl.z = 0;
+    ir_fwd.ir.x = -4 * eighth_len
+    ir_fwd.ir.y = -half_width;
+    ir_fwd.ir.z = 0;
+    ir_fwd.il.x = -2 * eighth_len
+    ir_fwd.il.y = half_width;
+    ir_fwd.il.z = 0;
+    ir_fwd.step = 3;
+
+     // IL Gait Forward
+    il_fwd.sr.x = 4 * eighth_len;
+    il_fwd.sr.y = -half_width;
+    il_fwd.sr.z = 0;
+    il_fwd.sl.x = 2 * eighth_len;
+    il_fwd.sl.y = half_width;
+    il_fwd.sl.z = 0;
+    il_fwd.ir.x = -2 * eighth_len;
+    il_fwd.ir.y = -half_width;
+    il_fwd.ir.z = 0;
+    il_fwd.il.x = -4 * eighth_len;
+    il_fwd.il.y = half_width;
+    il_fwd.il.z = 0;
+    il_fwd.step = 4;
+
+
+    sr_turn = zeroGait();
+    sl_turn = zeroGait();
+    ir_turn = zeroGait();
+    il_turn = zeroGait();
+    halt = zeroGait();
+
+    // SR Gait Turn
+    /*sr_turn.sr.x = 0;
+    sr_turn.sr.y = 0;
+    sr_turn.sr.z = 0;
+    sr_turn.sl.x = 0;
+    sr_turn.sl.y = 0;
+    sr_turn.sl.z = 0;
+    sr_turn.ir.x = 0;
+    sr_turn.ir.y = 0;
+    sr_turn.ir.z = 0;
+    sr_turn.il.x = 0;
+    sr_turn.il.y = 0;
+    sr_turn.il.z = 0;
+
+    // SL Gait Turn
+    sl_turn.sr.x = 0;
+    sl_turn.sr.y = 0;
+    sl_turn.sr.z = 0;
+    sl_turn.sl.x = 0;
+    sl_turn.sl.y = 0;
+    sl_turn.sl.z = 0;
+    sl_turn.ir.x = 0;
+    sl_turn.ir.y = 0;
+    sl_turn.ir.z = 0;
+    sl_turn.il.x = 0;
+    sl_turn.il.y = 0;
+    sl_turn.il.z = 0;
+
+    // IR Gait Turn
+    ir_turn.sr.x = 0;
+    ir_turn.sr.y = 0;
+    ir_turn.sr.z = 0;
+    ir_turn.sl.x = 0;
+    ir_turn.sl.y = 0;
+    ir_turn.sl.z = 0;
+    ir_turn.ir.x = 0;
+    ir_turn.ir.y = 0;
+    ir_turn.ir.z = 0;
+    ir_turn.il.x = 0;
+    ir_turn.il.y = 0;
+    ir_turn.il.z = 0;
+
+    // IL Gait Turn
+    il_turn.sr.x = 0;
+    il_turn.sr.y = 0;
+    il_turn.sr.z = 0;
+    il_turn.sl.x = 0;
+    il_turn.sl.y = 0;
+    il_turn.sl.z = 0;
+    il_turn.ir.x = 0;
+    il_turn.ir.y = 0;
+    il_turn.ir.z = 0;
+    il_turn.il.x = 0;
+    il_turn.il.y = 0;
+    il_turn.il.z = 0;
+
+    // Halt Gait
+    halt.sr.x = 0;
+    halt.sr.y = 0;
+    halt.sr.z = 0;
+    halt.sl.x = 0;
+    halt.sl.y = 0;
+    halt.sl.z = 0;
+    halt.ir.x = 0;
+    halt.ir.y = 0;
+    halt.ir.z = 0;
+    halt.il.x = 0;
+    halt.il.y = 0;
+    halt.il.z = 0;*/
+    
 }
 
 void GaitPlanner::Gait_CB(const robot_core::Gait::ConstPtr& gait) { 
@@ -128,6 +275,8 @@ void GaitPlanner::Init() {
     gait_command = gait_current;
     pose_current = zeroPose();
     pose_command = pose_current;
+    gait_queue.push(zeroPose());
+    InitializeGaits();
 
 }
 
@@ -294,7 +443,80 @@ std::vector<Gait> GaitPlanner::pathCommand(nav_msgs::Odometry end, nav_msgs::Odo
 }
 
 nav_msgs::Odometry translate(nav_msgs::Odometry end, nav_msgs::Odometry start) {
+    nav_msgs::Odometry translate_end = end;
 
+    double x = translate_end.pose.pose.position.x - start.pose.pose.position.x;
+    double y = translate_end.pose.pose.position.y - start.pose.pose.position.y;
+    double z = translate_end.pose.pose.position.z - start.pose.pose.position.z;
+
+    tf2::Quaternion quat_i, quat_o;
+    tf2::convert(start.pose.pose.orientation, quat_i);
+    tf2::convert(end.pose.pose.orientation, quat_o);
+
+
+    tf::Matrix3x3 m_i;
+    m_i.setRotation(quat_i); 
+    tf::Vector3 out_pos_vec(x, y, z);
+    out_pos_vec *= m_i.inverse();
+    quat_o *= quat_i.inverse();
+
+    translate_end.pose.pose.position.x = out_pos_vec.x();
+    translate_end.pose.pose.position.y = out_pos_vec.y();
+    translate_end.pose.pose.position.z = out_pos_vec.z();
+
+    translate_end.pose.pose.orientation = tf2::toMsg(quat_o);
+    return translate_end;
+
+}
+
+void walk(double dist) {
+    double steps_to_take = dist / ((center_to_back + center_to_front) / 4);
+    int steps_taken = 0;
+    
+    while (steps_taken < steps_to_take) {
+        switch(mode) {
+            case Mode::Halt: {
+                gait_queue.push(il_fwd);
+                mode = Mode::SL;
+            }
+            break;
+
+            case Mode::SR: {
+                gait_queue.push(sr_fwd);
+                mode = Mode::IL;
+
+            }
+            break;
+
+            case Mode::SL: {
+                gait_queue.push(sl_fwd);
+                mode = Mode::IR;
+            }
+            break;
+
+            case Mode::IR: {
+                gait_queue.push(ir_fwd);
+                mode = Mode::SR;
+            }
+            break;
+
+            case Mode::IL: {
+                gait_queue.push(il_fwd);
+                mode = Mode::SL;
+
+            }
+            break;
+
+
+
+            default: {
+
+
+    
+            }
+        }
+        steps_taken++;
+    }
 }
 /*
 void GaitPlanner::debug(std::vector<double> values, std::string message) {
