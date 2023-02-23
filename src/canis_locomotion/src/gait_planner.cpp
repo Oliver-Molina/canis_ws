@@ -264,8 +264,8 @@ void GaitPlanner::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
 void GaitPlanner::Percent_CB(const std_msgs::Float64::ConstPtr& percent_msg) {
     percent = percent_msg->data;
     if (percent > margin && !gait_queue.empty()) {
-        gait_pub.publish(gait_queue[0]);
-        gait_queue.erase(gait_queue.begin());
+        gait_pub.publish(gait_queue.front());
+        gait_queue.pop();
     }
 }
 
@@ -281,30 +281,6 @@ void GaitPlanner::Init() {
 
 }
 
-void GaitPlanner::Pose_Update(const ros::TimerEvent& event) {
-    if (percent >= margin) {
-        /*gait_command.com.position.x = radius * cos(angle);
-        gait_command.com.position.y = radius * sin(angle);
-
-        gait_pub.publish(gait_command);
-        angle += delta_angle;
-        if (angle > 2 * M_PI) angle -= 2 * M_PI;*/
-
-        // 
-    }
-}
-
-std::vector<Gait> GaitPlanner::turn(double turn_rad) {
-
-}
-std::vector<Gait> GaitPlanner::halt() { // Bad practice fix later, nick is lazy
-    std::vector<Gait> out;
-    out.push_back(zeroGait());
-    return out;
-}
-std::vector<Gait> GaitPlanner::walk(double dist) {
-    
-}
 geometry_msgs::Pose GaitPlanner::safePose(double dist) {
     
 }

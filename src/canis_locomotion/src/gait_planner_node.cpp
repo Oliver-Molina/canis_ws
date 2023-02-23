@@ -9,7 +9,6 @@ int main(int argc, char **argv) {
 
     GaitPlanner gp = GaitPlanner(nh_private);
     gp.Init();
-    ros::Timer timer = nh_private.createTimer(ros::Duration(1.0 / gp.operating_freq), &GaitPlanner::Pose_Update, &gp);
     
     ros::spin();
     return 0;
