@@ -4,6 +4,8 @@
 #include <std_msgs/Float64.h>
 #include <std_msgs/String.h>
 
+#include <geometry_msgs/PointStamped.h>
+
 //#include <tf/transform_datatypes.h>
 //#include <tf/message_filter.h>
 //#include <tf/transform_listener.h>

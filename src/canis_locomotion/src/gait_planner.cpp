@@ -104,7 +104,7 @@ void GaitPlanner::InitializeGaits() {
     sr_fwd.il.x = -3 * eighth_len;
     sr_fwd.il.y = half_width;
     sr_fwd.il.z = 0;
-    sr_fwd.step = 1;
+    sr_fwd.foot.data = 1;
 
     // SL Gait Forward
     sl_fwd.sr.x = 3 * eighth_len;
@@ -119,22 +119,22 @@ void GaitPlanner::InitializeGaits() {
     sl_fwd.il.x = -eighth_len;
     sl_fwd.il.y = half_width;
     sl_fwd.il.z = 0;
-    sl_fwd.step = 2;
+    sl_fwd.foot.data = 2;
 
     // IR Gait Forward
-    ir_fwd.sr.x = 2 * eighth_len
+    ir_fwd.sr.x = 2 * eighth_len;
     ir_fwd.sr.y = -half_width;
     ir_fwd.sr.z = 0;
-    ir_fwd.sl.x = 4 * eighth_len
+    ir_fwd.sl.x = 4 * eighth_len;
     ir_fwd.sl.y = half_width;
     ir_fwd.sl.z = 0;
-    ir_fwd.ir.x = -4 * eighth_len
+    ir_fwd.ir.x = -4 * eighth_len;
     ir_fwd.ir.y = -half_width;
     ir_fwd.ir.z = 0;
-    ir_fwd.il.x = -2 * eighth_len
+    ir_fwd.il.x = -2 * eighth_len;
     ir_fwd.il.y = half_width;
     ir_fwd.il.z = 0;
-    ir_fwd.step = 3;
+    ir_fwd.foot.data = 3;
 
      // IL Gait Forward
     il_fwd.sr.x = 4 * eighth_len;
@@ -149,84 +149,38 @@ void GaitPlanner::InitializeGaits() {
     il_fwd.il.x = -4 * eighth_len;
     il_fwd.il.y = half_width;
     il_fwd.il.z = 0;
-    il_fwd.step = 4;
+    il_fwd.foot.data = 4;
 
 
-    sr_turn = zeroGait();
-    sl_turn = zeroGait();
-    ir_turn = zeroGait();
-    il_turn = zeroGait();
     halt = zeroGait();
 
+    // IL Gait Turn
+    il_turn = zeroGait();
+    il_turn.foot.data = 4;
+
     // SR Gait Turn
-    /*sr_turn.sr.x = 0;
-    sr_turn.sr.y = 0;
-    sr_turn.sr.z = 0;
-    sr_turn.sl.x = 0;
-    sr_turn.sl.y = 0;
-    sr_turn.sl.z = 0;
-    sr_turn.ir.x = 0;
-    sr_turn.ir.y = 0;
-    sr_turn.ir.z = 0;
-    sr_turn.il.x = 0;
-    sr_turn.il.y = 0;
-    sr_turn.il.z = 0;
+    sr_turn = il_turn;
+    sr_turn.sr = rotate2D(step_turn_rad, sr_turn.sr);
+    sr_turn.sl = rotate2D(step_turn_rad, sr_turn.sl);
+    sr_turn.ir = rotate2D(step_turn_rad, sr_turn.ir);
+    sr_turn.il = rotate2D(-4 * step_turn_rad, sr_turn.il);
+    sr_turn.foot.data = 1;
 
     // SL Gait Turn
-    sl_turn.sr.x = 0;
-    sl_turn.sr.y = 0;
-    sl_turn.sr.z = 0;
-    sl_turn.sl.x = 0;
-    sl_turn.sl.y = 0;
-    sl_turn.sl.z = 0;
-    sl_turn.ir.x = 0;
-    sl_turn.ir.y = 0;
-    sl_turn.ir.z = 0;
-    sl_turn.il.x = 0;
-    sl_turn.il.y = 0;
-    sl_turn.il.z = 0;
+    sl_turn = sr_turn;
+    sl_turn.sr = rotate2D(-4 * step_turn_rad, sl_turn.sr);
+    sl_turn.sl = rotate2D(step_turn_rad, sl_turn.sl);
+    sl_turn.ir = rotate2D(step_turn_rad, sl_turn.ir);
+    sl_turn.il = rotate2D(step_turn_rad, sl_turn.il);
+    sr_turn.foot.data = 2;
 
     // IR Gait Turn
-    ir_turn.sr.x = 0;
-    ir_turn.sr.y = 0;
-    ir_turn.sr.z = 0;
-    ir_turn.sl.x = 0;
-    ir_turn.sl.y = 0;
-    ir_turn.sl.z = 0;
-    ir_turn.ir.x = 0;
-    ir_turn.ir.y = 0;
-    ir_turn.ir.z = 0;
-    ir_turn.il.x = 0;
-    ir_turn.il.y = 0;
-    ir_turn.il.z = 0;
-
-    // IL Gait Turn
-    il_turn.sr.x = 0;
-    il_turn.sr.y = 0;
-    il_turn.sr.z = 0;
-    il_turn.sl.x = 0;
-    il_turn.sl.y = 0;
-    il_turn.sl.z = 0;
-    il_turn.ir.x = 0;
-    il_turn.ir.y = 0;
-    il_turn.ir.z = 0;
-    il_turn.il.x = 0;
-    il_turn.il.y = 0;
-    il_turn.il.z = 0;
-
-    // Halt Gait
-    halt.sr.x = 0;
-    halt.sr.y = 0;
-    halt.sr.z = 0;
-    halt.sl.x = 0;
-    halt.sl.y = 0;
-    halt.sl.z = 0;
-    halt.ir.x = 0;
-    halt.ir.y = 0;
-    halt.ir.z = 0;
-    halt.il.x = 0;
-    halt.il.y = 0;
-    halt.il.z = 0;*/
+    ir_turn = sl_turn;
+    ir_turn.sr = rotate2D(step_turn_rad, ir_turn.sr);
+    ir_turn.sl = rotate2D(-4 * step_turn_rad, ir_turn.sl);
+    ir_turn.ir = rotate2D(step_turn_rad, ir_turn.ir);
+    ir_turn.il = rotate2D(step_turn_rad, ir_turn.il);
+    sr_turn.foot.data = 3;
     
 }
 
@@ -243,8 +197,9 @@ void GaitPlanner::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) {
 }
 
 void GaitPlanner::Path_CB(const PathQuat::ConstPtr& path) {
-    this->path = (*path).poses;
-    gait_queue.clear();
+    this->path = (*path).poses; 
+    std::queue<Gait> empty;
+    std::swap(gait_queue, empty);
     calculatePath();
 }
 
@@ -276,7 +231,7 @@ void GaitPlanner::Init() {
     gait_command = gait_current;
     pose_current = zeroPose();
     pose_command = pose_current;
-    gait_queue.push(zeroPose());
+    gait_queue.push(zeroGait());
     InitializeGaits();
 
 }
@@ -430,22 +385,23 @@ nav_msgs::Odometry translate(nav_msgs::Odometry end, nav_msgs::Odometry start) {
     tf2::convert(end.pose.pose.orientation, quat_o);
 
 
-    tf::Matrix3x3 m_i;
+    tf2::Matrix3x3 m_i;
     m_i.setRotation(quat_i); 
-    tf::Vector3 out_pos_vec(x, y, z);
-    out_pos_vec *= m_i.inverse();
+    tf2::Vector3 out_pos_vec(x, y, z);
+    out_pos_vec = m_i.inverse() * out_pos_vec;
     quat_o *= quat_i.inverse();
 
     translate_end.pose.pose.position.x = out_pos_vec.x();
     translate_end.pose.pose.position.y = out_pos_vec.y();
     translate_end.pose.pose.position.z = out_pos_vec.z();
 
-    translate_end.pose.pose.orientation = tf2::toMsg(quat_o);
+    //translate_end.pose.pose.orientation = tf::createQuaternionFromMsg(quat_o);
+    tf2::convert(quat_o, translate_end.pose.pose.orientation);
     return translate_end;
 
 }
 
-void walk(double dist) {
+void GaitPlanner::walk(double dist) {
     double steps_to_take = dist / ((center_to_back + center_to_front) / 4);
     int steps_taken = 0;
     
@@ -491,21 +447,21 @@ void walk(double dist) {
     }
 }
 
-void turn(double rad) {
+void GaitPlanner::turn(double rad) {
     double steps_to_take = rad / step_turn_rad;
     int steps_taken = 0;
-    if (rad > = 0) {
+    if (rad >= 0) {
         while (steps_taken < steps_to_take) {
             switch(mode) {
                 case Mode::Halt: {
-                    gait_queue.push(sr_turn);
-                    mode = Mode::SR;
+                    gait_queue.push(il_turn);
+                    mode = Mode::IL;
                 }
                 break;
 
                 case Mode::SR: {
                     gait_queue.push(sr_turn);
-                    mode = Mode::IL;
+                    mode = Mode::SL;
                 }
                 break;
 
@@ -517,13 +473,13 @@ void turn(double rad) {
 
                 case Mode::IR: {
                     gait_queue.push(ir_turn);
-                    mode = Mode::SR;
+                    mode = Mode::IL;
                 }
                 break;
 
                 case Mode::IL: {
                     gait_queue.push(il_turn);
-                    mode = Mode::SL;
+                    mode = Mode::SR;
                 }
                 break;
 
@@ -540,32 +496,32 @@ void turn(double rad) {
         while (steps_taken < steps_to_take) {
             switch(mode) {
                 case Mode::Halt: {
-                    //gait_queue.push(sr_turn);
-                    //mode = Mode::SR;
+                    gait_queue.push(il_turn);
+                    mode = Mode::IL;
                 }
                 break;
 
                 case Mode::SR: {
-                    //gait_queue.push(sr_turn);
-                    //mode = Mode::IL;
+                    gait_queue.push(sr_turn);
+                    mode = Mode::IL;
                 }
                 break;
 
                 case Mode::SL: {
-                    //gait_queue.push(sl_turn);
-                    //mode = Mode::IR;
+                    gait_queue.push(sl_turn);
+                    mode = Mode::SR;
                 }
                 break;
 
                 case Mode::IR: {
-                    //gait_queue.push(ir_turn);
-                    //mode = Mode::SR;
+                    gait_queue.push(ir_turn);
+                    mode = Mode::SL;
                 }
                 break;
 
                 case Mode::IL: {
-                    //gait_queue.push(il_turn);
-                    //mode = Mode::SL;
+                    gait_queue.push(il_turn);
+                    mode = Mode::IR;
                 }
                 break;
 
@@ -578,6 +534,22 @@ void turn(double rad) {
             steps_taken++;
         }
     }
+}
+
+geometry_msgs::Point rotate2D(double rad, geometry_msgs::Point point) {
+    tf2::Quaternion tf2_quat;
+    tf2_quat.setRPY(0, 0, rad);
+
+    tf2::Matrix3x3 tf2_mat;
+    tf2_mat.setRotation(tf2_quat); 
+    tf2::Vector3 tf2_point(point.x, point.y, point.z);
+    tf2::Vector3 tf2_point_out = tf2_mat * tf2_point;
+
+    geometry_msgs::Point point_out;
+    point_out.x = tf2_point.getX();
+    point_out.y = tf2_point.getY();
+    point_out.z = tf2_point.getZ();
+    return point_out;
 }
 /*
 void GaitPlanner::debug(std::vector<double> values, std::string message) {

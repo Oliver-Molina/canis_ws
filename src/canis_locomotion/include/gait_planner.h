@@ -47,9 +47,9 @@ class GaitPlanner {
         void Init();
         void Calc_Deltas();
         void calculatePath();
-        std::vector<Gait> turn(double turn_rad);
-        std::vector<Gait> halt();
-        std::vector<Gait> walk(double dist);
+        void turn(double turn_rad);
+        //std::vector<Gait> halt();
+        void walk(double dist);
         geometry_msgs::Pose safePose(double dist);
         geometry_msgs::Pose zeroPose();
         Gait zeroGait();
@@ -162,3 +162,4 @@ Point point_lerp(Point p1, Point p2, double percent);
 Gait gait_lerp(Gait g1, Gait g2, double percent);
 Gait normalize_gait(Gait gait);
 nav_msgs::Odometry translate(nav_msgs::Odometry end, nav_msgs::Odometry start);
+geometry_msgs::Point rotate2D(double rad, geometry_msgs::Point point);
