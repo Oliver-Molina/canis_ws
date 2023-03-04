@@ -44,9 +44,9 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     
     
     percent_sub = nh_.subscribe<std_msgs::Float64>("/odometry/percent", 1000, &GaitPlanner::Percent_CB, this);
+    path_sub = nh_.subscribe<robot_core::PathQuat>("/command/path", 10, &GaitPlanner::Path_CB, this);
 
     gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/next", 1000);
-
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
 
     // #### Robot Params ####
@@ -73,7 +73,7 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     percent = 0;
     mode = Mode::Halt;
     path = {};
-    gait_queue = {};
+    //gait_queue = {};
     step_turn_rad = 2 * M_PI / 48;
 
     // #### Testing ####
@@ -82,7 +82,6 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     radius = 0.05;
     period = 2 * M_PI * radius / x_vel;
     rot_freq = 1 / period;
-    vel_pub = nh_.advertise<geometry_msgs::TwistStamped>("/command/velocity", 1000);
 }
 
 
@@ -197,10 +196,17 @@ void GaitPlanner::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) {
 }
 
 void GaitPlanner::Path_CB(const PathQuat::ConstPtr& path) {
+    debug_msg.data = "here";
+    debug_pub.publish(debug_msg);
     this->path = (*path).poses; 
     std::queue<Gait> empty;
+    std::vector<Gait> gait_path = calculatePath();
+    for (Gait gait : gait_path) {
+        empty.push(gait);
+    }
     std::swap(gait_queue, empty);
-    calculatePath();
+    gait_pub.publish(gait_queue.front());
+    gait_queue.pop();
 }
 
 void GaitPlanner::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
@@ -236,9 +242,6 @@ void GaitPlanner::Init() {
 
 }
 
-geometry_msgs::Pose GaitPlanner::safePose(double dist) {
-    
-}
 Gait GaitPlanner::zeroGait() {
     
     Gait out;
@@ -284,9 +287,7 @@ geometry_msgs::Pose GaitPlanner::zeroPose() {
 
     return out;
 }
-Gait GaitPlanner::transformGait(Gait gait, Pose transform) {
 
-}
 Gait GaitPlanner::normalize_gait(Gait gait) {
     Gait out = gait;
 
@@ -355,10 +356,14 @@ Gait GaitPlanner::normalize_gait(Gait gait) {
     return out;
 }
 
-void GaitPlanner::calculatePath() {
+std::vector<Gait> GaitPlanner::calculatePath() {
+    std::vector<Gait> gait_path;
     for (int path_index = 1; path_index < path.size(); path_index++) {
-        pathCommand(path[path_index], path[path_index - 1]);
+        std::vector<Gait> temp = pathCommand(path[path_index], path[path_index - 1]);
+        gait_path.insert(gait_path.end(), temp.begin(), temp.end());
     }
+    
+    return gait_path;
 }
 
 std::vector<Gait> GaitPlanner::pathCommand(nav_msgs::Odometry end, nav_msgs::Odometry start) {
@@ -366,11 +371,13 @@ std::vector<Gait> GaitPlanner::pathCommand(nav_msgs::Odometry end, nav_msgs::Odo
     auto dist = translated_end.pose.pose.position.x;
     auto rad = translated_end.twist.twist.angular.z;
     if (dist == 0 && rad != 0) {
-        turn(rad);
+        return turn(rad);
     }
     else if (dist != 0 && rad == 0) {
-        walk(dist);
+        return walk(dist);
     }
+    std::vector<Gait> empty_vec;
+    return empty_vec;
 }
 
 nav_msgs::Odometry translate(nav_msgs::Odometry end, nav_msgs::Odometry start) {
@@ -401,38 +408,39 @@ nav_msgs::Odometry translate(nav_msgs::Odometry end, nav_msgs::Odometry start) {
 
 }
 
-void GaitPlanner::walk(double dist) {
+std::vector<Gait> GaitPlanner::walk(double dist) {
+    std::vector<Gait> gait_vector;
     double steps_to_take = dist / ((center_to_back + center_to_front) / 4);
     int steps_taken = 0;
     
     while (steps_taken < steps_to_take) {
         switch(mode) {
             case Mode::Halt: {
-                gait_queue.push(il_fwd);
+                gait_vector.push_back(il_fwd);
                 mode = Mode::SR; //Next Step
             }
             break;
 
             case Mode::SR: {
-                gait_queue.push(sr_fwd);
+                gait_vector.push_back(sr_fwd);
                 mode = Mode::IL;
             }
             break;
 
             case Mode::SL: {
-                gait_queue.push(sl_fwd);
+                gait_vector.push_back(sl_fwd);
                 mode = Mode::IR;
             }
             break;
 
             case Mode::IR: {
-                gait_queue.push(ir_fwd);
+                gait_vector.push_back(ir_fwd);
                 mode = Mode::SR;
             }
             break;
 
             case Mode::IL: {
-                gait_queue.push(il_fwd);
+                gait_vector.push_back(il_fwd);
                 mode = Mode::SL;
             }
             break;
@@ -445,40 +453,42 @@ void GaitPlanner::walk(double dist) {
         }
         steps_taken++;
     }
+    return gait_vector;
 }
 
-void GaitPlanner::turn(double rad) {
+std::vector<Gait> GaitPlanner::turn(double rad) {
+    std::vector<Gait> gait_vector;
     double steps_to_take = rad / step_turn_rad;
     int steps_taken = 0;
     if (rad >= 0) {
         while (steps_taken < steps_to_take) {
             switch(mode) {
                 case Mode::Halt: {
-                    gait_queue.push(il_turn);
+                    gait_vector.push_back(il_turn);
                     mode = Mode::IL;
                 }
                 break;
 
                 case Mode::SR: {
-                    gait_queue.push(sr_turn);
+                    gait_vector.push_back(sr_turn);
                     mode = Mode::SL;
                 }
                 break;
 
                 case Mode::SL: {
-                    gait_queue.push(sl_turn);
+                    gait_vector.push_back(sl_turn);
                     mode = Mode::IR;
                 }
                 break;
 
                 case Mode::IR: {
-                    gait_queue.push(ir_turn);
+                    gait_vector.push_back(ir_turn);
                     mode = Mode::IL;
                 }
                 break;
 
                 case Mode::IL: {
-                    gait_queue.push(il_turn);
+                    gait_vector.push_back(il_turn);
                     mode = Mode::SR;
                 }
                 break;
@@ -496,31 +506,31 @@ void GaitPlanner::turn(double rad) {
         while (steps_taken < steps_to_take) {
             switch(mode) {
                 case Mode::Halt: {
-                    gait_queue.push(il_turn);
+                    gait_vector.push_back(il_turn);
                     mode = Mode::IL;
                 }
                 break;
 
                 case Mode::SR: {
-                    gait_queue.push(sr_turn);
+                    gait_vector.push_back(sr_turn);
                     mode = Mode::IL;
                 }
                 break;
 
                 case Mode::SL: {
-                    gait_queue.push(sl_turn);
+                    gait_vector.push_back(sl_turn);
                     mode = Mode::SR;
                 }
                 break;
 
                 case Mode::IR: {
-                    gait_queue.push(ir_turn);
+                    gait_vector.push_back(ir_turn);
                     mode = Mode::SL;
                 }
                 break;
 
                 case Mode::IL: {
-                    gait_queue.push(il_turn);
+                    gait_vector.push_back(il_turn);
                     mode = Mode::IR;
                 }
                 break;
@@ -534,6 +544,7 @@ void GaitPlanner::turn(double rad) {
             steps_taken++;
         }
     }
+    return gait_vector;
 }
 
 geometry_msgs::Point rotate2D(double rad, geometry_msgs::Point point) {
@@ -551,7 +562,7 @@ geometry_msgs::Point rotate2D(double rad, geometry_msgs::Point point) {
     point_out.z = tf2_point.getZ();
     return point_out;
 }
-/*
+
 void GaitPlanner::debug(std::vector<double> values, std::string message) {
     // Requires:
     //  message have as many | as values in vector
@@ -592,5 +603,10 @@ void GaitPlanner::debug(std::vector<double> values, std::string message) {
         debug_pub.publish(debug_msg);
     }
 }
-std::vector<Gait> 
-*/
+
+void GaitPlanner::debug(std::string message) {
+    debug_msg.data = message.c_str();
+    debug_pub.publish(debug_msg);
+}
+
+

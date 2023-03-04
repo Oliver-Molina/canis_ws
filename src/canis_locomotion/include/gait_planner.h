@@ -46,10 +46,9 @@ class GaitPlanner {
         void Command_Body();
         void Init();
         void Calc_Deltas();
-        void calculatePath();
-        void turn(double turn_rad);
-        //std::vector<Gait> halt();
-        void walk(double dist);
+        std::vector<Gait> calculatePath();
+        std::vector<Gait> turn(double turn_rad);
+        std::vector<Gait> walk(double dist);
         geometry_msgs::Pose safePose(double dist);
         geometry_msgs::Pose zeroPose();
         Gait zeroGait();
@@ -63,6 +62,7 @@ class GaitPlanner {
 
         // Debugging
         void debug(std::vector<double> values, std::string message);
+        void debug(std::string message);
 
 
     private:
@@ -105,10 +105,11 @@ class GaitPlanner {
         ros::Publisher gait_pub;
         ros::Publisher debug_pub;
 
-        ros::Subscriber gait_sub;
+        //ros::Subscriber gait_sub;
         ros::Subscriber vel_sub;
         ros::Subscriber reset_sub;
         ros::Subscriber percent_sub;
+        ros::Subscriber path_sub;
 
         std_msgs::Float64 percent_msg;
     

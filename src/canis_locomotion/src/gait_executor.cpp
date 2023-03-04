@@ -187,18 +187,19 @@ void GaitExecutor::Init() {
 }
 
 void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
+    percent_step += delta_percent;
+    percent_msg.data = percent_step;              
+    percent_pub.publish(percent_msg);
     
     if (percent_step >= 1) { 
         percent_step = 0;
         gait_current = gait_next;
+        debug("100%");
     }
 
-    else {           
-        percent_msg.data = percent_step;              
-        percent_step += delta_percent;
-        percent_pub.publish(percent_msg);
-    }
     Command_Body();
+    std::vector<double> vals;
+    vals.push_back(x_vel);
 
 }
 
@@ -235,6 +236,11 @@ void GaitExecutor::debug(std::vector<double> values, std::string message) {
 
     std::string str = ss.str();
     debug_msg.data = str.c_str();
+    debug_pub.publish(debug_msg);
+}
+
+void GaitExecutor::debug(std::string message) {
+    debug_msg.data = message.c_str();
     debug_pub.publish(debug_msg);
 }
 
