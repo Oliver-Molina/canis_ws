@@ -41,6 +41,7 @@ class GaitExecutor {
         // Debugging
         void debug(std::vector<double> values, std::string message);
         void debug(std::string message);
+        void print_gait(Gait gait);
 
         double operating_freq; // TBD, more testing
 

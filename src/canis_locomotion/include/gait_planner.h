@@ -63,6 +63,10 @@ class GaitPlanner {
         // Debugging
         void debug(std::vector<double> values, std::string message);
         void debug(std::string message);
+        void print_gait(Gait gait);
+    
+
+
 
 
     private:

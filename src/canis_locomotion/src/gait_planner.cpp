@@ -196,13 +196,13 @@ void GaitPlanner::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) {
 }
 
 void GaitPlanner::Path_CB(const PathQuat::ConstPtr& path) {
-    debug_msg.data = "here";
-    debug_pub.publish(debug_msg);
     this->path = (*path).poses; 
     std::queue<Gait> empty;
     std::vector<Gait> gait_path = calculatePath();
     for (Gait gait : gait_path) {
         empty.push(gait);
+        //print_gait(gait);
+
     }
     std::swap(gait_queue, empty);
     gait_pub.publish(gait_queue.front());
@@ -577,31 +577,17 @@ void GaitPlanner::debug(std::vector<double> values, std::string message) {
     }
     
     std::stringstream ss;
-    if (values.size() != char_count) {
-        ss << "[Debug Error] Message: (";
-        for (int i = 0; i < values.size(); i++) {
-            ss << split_message[i] << "|";
-        }
-        ss << " & Values: ";
-        for (int i = 0; i < values.size(); i++) {
-            ss << values[i] << " ";
-        }
-        ss << "don't match." << std::endl;
 
-        std::string str = ss.str();
-        debug_msg.data = str.c_str();
-        debug_pub.publish(debug_msg);
-    }
-    else {
-        for (int i = 0; i < values.size(); i++) {
-            ss << split_message[i] << values[i];
-        }
-        ss << split_message[values.size()];
 
-        std::string str = ss.str();
-        debug_msg.data = str.c_str();
-        debug_pub.publish(debug_msg);
+    for (int i = 0; i < values.size() && i < char_count; i++) {
+        ss << split_message[i] << values[i];
     }
+    ss << split_message[values.size()];
+
+    std::string str = ss.str();
+    debug_msg.data = str.c_str();
+    debug_pub.publish(debug_msg);
+    
 }
 
 void GaitPlanner::debug(std::string message) {
@@ -609,4 +595,32 @@ void GaitPlanner::debug(std::string message) {
     debug_pub.publish(debug_msg);
 }
 
+void GaitPlanner::print_gait(Gait gait) {
+    std::vector<double> values_vec;
+    values_vec.push_back(gait.com.position.x); 
+    values_vec.push_back(gait.com.position.y); 
+    values_vec.push_back(gait.com.position.z);
 
+    std::vector<double> values_vec_sr;
+    values_vec.push_back(gait.sr.x);
+    values_vec.push_back(gait.sr.y);
+    values_vec.push_back(gait.sr.z);
+
+    std::vector<double> values_vec_sl;
+    values_vec.push_back(gait.sl.x);
+    values_vec.push_back(gait.sl.y);
+    values_vec.push_back(gait.sl.z);
+
+    std::vector<double> values_vec_ir;
+    values_vec.push_back(gait.ir.x);
+    values_vec.push_back(gait.ir.y);
+    values_vec.push_back(gait.ir.z);
+
+    std::vector<double> values_vec_il;
+    values_vec.push_back(gait.il.x);
+    values_vec.push_back(gait.il.y);
+    values_vec.push_back(gait.il.z);
+
+    debug(values_vec, "COM: x: |, y: |, z: |\nSR: x: |, y: |, z: |\nSL x: |, y: |, z: |\nIR: x: |, y: |, z: | \nIL: x: |, y: |, z: | ");
+
+}

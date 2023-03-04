@@ -82,10 +82,17 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
 
 void GaitExecutor::Gait_CB(const robot_core::Gait::ConstPtr& gait) { 
     gait_next = *gait;
-    double delta_dist = sqrt((gait_next.com.position.x-gait_current.com.position.x)*(gait_next.com.position.x-gait_current.com.position.x)+
-                             (gait_next.com.position.y-gait_current.com.position.y)*(gait_next.com.position.y-gait_current.com.position.y)+
-                             (gait_next.com.position.z-gait_current.com.position.z)*(gait_next.com.position.z-gait_current.com.position.z));
-
+    double delta_dist = 0;
+    if (gait_current.foot.data != 1) {
+        delta_dist = sqrt((gait_next.sr.x-gait_current.sr.x)*(gait_next.sr.x-gait_current.sr.x)+
+                        (gait_next.sr.y-gait_current.sr.y)*(gait_next.sr.y-gait_current.sr.y)+
+                        (gait_next.sr.z-gait_current.sr.z)*(gait_next.sr.z-gait_current.sr.z));
+    }
+    else {
+        delta_dist = sqrt((gait_next.sl.x-gait_current.sl.x)*(gait_next.sl.x-gait_current.sl.x)+
+                        (gait_next.sl.y-gait_current.sl.y)*(gait_next.sl.y-gait_current.sl.y)+
+                        (gait_next.sl.z-gait_current.sl.z)*(gait_next.sl.z-gait_current.sl.z));
+    }
     tf2::Quaternion quat_tf1, quat_tf2;
     tf2::convert(gait_current.com.orientation, quat_tf1);
     tf2::convert(gait_next.com.orientation, quat_tf2);
@@ -193,13 +200,12 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
     
     if (percent_step >= 1) { 
         percent_step = 0;
+        print_gait(gait_next);
+        print_gait(gait_current);
         gait_current = gait_next;
-        debug("100%");
     }
 
     Command_Body();
-    std::vector<double> vals;
-    vals.push_back(x_vel);
 
 }
 
@@ -364,4 +370,34 @@ Gait gait_raise_foot(Gait gait, double step_height) {
         }
     }
     return gait;
+}
+
+void GaitExecutor::print_gait(Gait gait) {
+    std::vector<double> values_vec;
+    values_vec.push_back(gait.com.position.x); 
+    values_vec.push_back(gait.com.position.y); 
+    values_vec.push_back(gait.com.position.z);
+
+    std::vector<double> values_vec_sr;
+    values_vec.push_back(gait.sr.x);
+    values_vec.push_back(gait.sr.y);
+    values_vec.push_back(gait.sr.z);
+
+    std::vector<double> values_vec_sl;
+    values_vec.push_back(gait.sl.x);
+    values_vec.push_back(gait.sl.y);
+    values_vec.push_back(gait.sl.z);
+
+    std::vector<double> values_vec_ir;
+    values_vec.push_back(gait.ir.x);
+    values_vec.push_back(gait.ir.y);
+    values_vec.push_back(gait.ir.z);
+
+    std::vector<double> values_vec_il;
+    values_vec.push_back(gait.il.x);
+    values_vec.push_back(gait.il.y);
+    values_vec.push_back(gait.il.z);
+
+    debug(values_vec, "COM: x: |, y: |, z: |\nSR: x: |, y: |, z: |\nSL x: |, y: |, z: |\nIR: x: |, y: |, z: | \nIL: x: |, y: |, z: | ");
+
 }

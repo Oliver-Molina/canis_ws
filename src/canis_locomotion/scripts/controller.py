@@ -8,8 +8,8 @@ from robot_core.msg import PathQuat
 
 def dist_cb(dist):
     vel = TwistStamped()
-    vel.twist.linear.x = 0.01
-    vel.twist.angular.z = 0.01
+    vel.twist.linear.x = 0.1
+    vel.twist.angular.z = 0.1
     vel_pub = rospy.Publisher('/command/velocity', TwistStamped, queue_size=10)
     vel_pub.publish(vel)
     path_pub = rospy.Publisher('/command/path', PathQuat, queue_size=10)
