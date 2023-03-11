@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   geometry_msgs
+  nav_msgs
   message_generation
 )
 
@@ -53,6 +54,7 @@ add_message_files(
   FILES
   Gait.msg
   GaitVec.msg
+  PathQuat.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -74,6 +76,7 @@ generate_messages(
   DEPENDENCIES
   geometry_msgs
   std_msgs
+  nav_msgs
 )
 
 ################################################

@@ -13,25 +13,25 @@
 
 LegInverseKinematicsProcessor::LegInverseKinematicsProcessor(const ros::NodeHandle &nh_private_) {
     
-    SuperiorRightSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/pos/superior/right", 1000, &LegInverseKinematicsProcessor::Superior_Right_Leg_Pos_CB, this);
-    SuperiorLeftSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/pos/superior/left", 1000, &LegInverseKinematicsProcessor::Superior_Left_Leg_Pos_CB, this);
-    InferiorRightSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/pos/inferior/right", 1000, &LegInverseKinematicsProcessor::Inferior_Right_Leg_Pos_CB, this);
-    InferiorLeftSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/pos/inferior/left", 1000, &LegInverseKinematicsProcessor::Inferior_Left_Leg_Pos_CB, this);
+    SuperiorRightSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/leg/pos/superior/right", 1000, &LegInverseKinematicsProcessor::Superior_Right_Leg_Pos_CB, this);
+    SuperiorLeftSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/leg/pos/superior/left", 1000, &LegInverseKinematicsProcessor::Superior_Left_Leg_Pos_CB, this);
+    InferiorRightSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/leg/pos/inferior/right", 1000, &LegInverseKinematicsProcessor::Inferior_Right_Leg_Pos_CB, this);
+    InferiorLeftSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/leg/pos/inferior/left", 1000, &LegInverseKinematicsProcessor::Inferior_Left_Leg_Pos_CB, this);
 
-    superior_right_shoulder_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/shoulder/superior/right", 1000);
-    superior_left_shoulder_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/shoulder/superior/left", 1000);
-    inferior_right_shoulder_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/shoulder/inferior/right", 1000);
-    inferior_left_shoulder_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/shoulder/inferior/left", 1000);
+    superior_right_shoulder_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/shoulder/superior/right", 1000);
+    superior_left_shoulder_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/shoulder/superior/left", 1000);
+    inferior_right_shoulder_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/shoulder/inferior/right", 1000);
+    inferior_left_shoulder_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/shoulder/inferior/left", 1000);
 
-    superior_right_arm_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/arm/superior/right", 1000);
-    superior_left_arm_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/arm/superior/left", 1000);
-    inferior_right_arm_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/arm/inferior/right", 1000);
-    inferior_left_arm_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/arm/inferior/left", 1000);
+    superior_right_arm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/arm/superior/right", 1000);
+    superior_left_arm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/arm/superior/left", 1000);
+    inferior_right_arm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/arm/inferior/right", 1000);
+    inferior_left_arm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/arm/inferior/left", 1000);
 
-    superior_right_forearm_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/forearm/superior/right", 1000);
-    superior_left_forearm_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/forearm/superior/left", 1000);
-    inferior_right_forearm_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/forearm/inferior/right", 1000);
-    inferior_left_forearm_pub = nh_.advertise<std_msgs::Float64>("/actuation/leg/forearm/inferior/left", 1000);
+    superior_right_forearm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/forearm/superior/right", 1000);
+    superior_left_forearm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/forearm/superior/left", 1000);
+    inferior_right_forearm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/forearm/inferior/right", 1000);
+    inferior_left_forearm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/forearm/inferior/left", 1000);
 
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
 
@@ -43,7 +43,7 @@ LegInverseKinematicsProcessor::LegInverseKinematicsProcessor(const ros::NodeHand
 void LegInverseKinematicsProcessor::Superior_Right_Leg_Pos_CB(const geometry_msgs::PointStamped::ConstPtr& Point) {
 
     double superior_right_x = Point->point.x;
-    double superior_right_y = Point->point.y;
+    double superior_right_y = -Point->point.y;
     double superior_right_z = Point->point.z;
 
     double dyz = sqrt(superior_right_y * superior_right_y + superior_right_z * superior_right_z);
@@ -141,7 +141,7 @@ void LegInverseKinematicsProcessor::Superior_Left_Leg_Pos_CB(const geometry_msgs
 void LegInverseKinematicsProcessor::Inferior_Right_Leg_Pos_CB(const geometry_msgs::PointStamped::ConstPtr& Point) {
 
     double inferior_right_x = Point->point.x;
-    double inferior_right_y = Point->point.y;
+    double inferior_right_y = -Point->point.y;
     double inferior_right_z = Point->point.z;
 
     double dyz = sqrt(inferior_right_y * inferior_right_y + inferior_right_z * inferior_right_z);

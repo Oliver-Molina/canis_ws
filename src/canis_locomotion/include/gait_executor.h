@@ -11,23 +11,8 @@
 #include <robot_core/Gait.h>
 #include <robot_core/GaitVec.h>
 
-
-enum Foot {SR, SL, IR, IL};
-
-struct Point {
-    double x;
-    double y;
-    double z;
-};
-
-struct Gait {
-    Point sr;
-    Point sl;
-    Point ir;
-    Point il;
-    Point com;
-    Foot foot;
-};
+using namespace robot_core;
+using namespace geometry_msgs;
 
 class GaitExecutor {
     public:
@@ -39,19 +24,26 @@ class GaitExecutor {
 
         // Callback methods
         void Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait);
-        void Gait_Add_CB(const robot_core::Gait::ConstPtr& gait);
+        void Gait_CB(const robot_core::Gait::ConstPtr& gait);
         void Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
         void Reset_CB(const std_msgs::Bool::ConstPtr& reset);
 
-        void Vel_Update(const ros::TimerEvent& event);
+        void Pose_Update(const ros::TimerEvent& event);
 
         // Operation Methods
         void Command_SR();
         void Command_SL();
         void Command_IR();
         void Command_IL();
+        void Command_Body();
+        void Init();
+        Gait normalize_gait(Gait gait);
+        Gait gait_lerp(Gait g1, Gait g2, double percent);
 
-        void Move_Body(double x, double y);
+        // Debugging
+        void debug(std::vector<double> values, std::string message);
+        void debug(std::string message);
+        void print_gait(Gait gait);
 
         double operating_freq; // TBD, more testing
 
@@ -98,6 +90,10 @@ class GaitExecutor {
         ros::Publisher sl_pub;
         ros::Publisher ir_pub;
         ros::Publisher il_pub;
+        ros::Publisher percent_pub;
+
+        ros::Publisher pose_pub;
+        ros::Publisher pose_norm_pub;
 
         ros::Publisher debug_pub;
 
@@ -105,36 +101,29 @@ class GaitExecutor {
         ros::Subscriber vel_sub;
         ros::Subscriber reset_sub;
     
-        // #### State Variables ####
-
-        std::vector<robot_core::Gait> gait_vec;
+        // #### Gait Variables ####
  
         double walking_z;
         double step_height;
+        Gait gait_normalized;
         Gait gait_current;
         Gait gait_next;
         double percent_step;
         double x_vel;
         double theta_vel;
+        double delta_percent;
 
-        double sr_x;
-        double sr_y;
-        double sr_z;
+        std_msgs::Float64 percent_msg;
 
-        double sl_x;
-        double sl_y;
-        double sl_z;
+        Point sr, sl, ir, il;
 
-        double ir_x;   
-        double ir_y;
-        double ir_z;
-
-        double il_x;
-        double il_y;
-        double il_z;
+        // #### Testing ####
+        double percent_dist;
+        double percent_theta;
 
 };
 
 double double_lerp(double x1, double x2, double percent);
 Point point_lerp(Point p1, Point p2, double percent);
-Gait gait_lerp(Gait g1, Gait g2, double percent);
+
+Gait gait_raise_foot(Gait gait, double step_height);

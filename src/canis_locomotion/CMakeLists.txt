@@ -159,10 +159,10 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# catkin_install_python(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+catkin_install_python(PROGRAMS
+  scripts/controller.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
@@ -205,8 +205,14 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(canis_locomotion_exe src/canis_locomotion_node.cpp src/canis_locomotion.cpp)
-target_link_libraries(canis_locomotion_exe ${catkin_LIBRARIES})
+# add_executable(canis_locomotion_exe src/canis_locomotion_node.cpp src/canis_locomotion.cpp)
+# target_link_libraries(canis_locomotion_exe ${catkin_LIBRARIES})
+# add_dependencies(canis_locomotion_exe ${catkin_EXPORTED_TARGETS})
+
 add_executable(gait_executor src/gait_executor_node.cpp src/gait_executor.cpp)
 target_link_libraries(gait_executor ${catkin_LIBRARIES})
 add_dependencies(gait_executor ${catkin_EXPORTED_TARGETS})
+
+add_executable(gait_planner src/gait_planner_node.cpp src/gait_planner.cpp)
+target_link_libraries(gait_planner ${catkin_LIBRARIES})
+add_dependencies(gait_planner ${catkin_EXPORTED_TARGETS})
