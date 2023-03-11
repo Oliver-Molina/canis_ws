@@ -119,8 +119,6 @@ void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
 }
 
 void GaitExecutor::Command_SR() {
-
-    print_gait(gait_normalized);
     
     sr_msg.point.x = gait_normalized.sr.x - center_to_front;
     sr_msg.point.y = gait_normalized.sr.y + body_width / 2.0;
@@ -202,7 +200,6 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
     
     if (percent_step >= 1) { 
         percent_step = 0;
-        //print_gait(gait_current);
         gait_current = gait_next;
     }
     Command_Body();
@@ -306,8 +303,6 @@ Gait GaitExecutor::normalize_gait(Gait gait) {
     out.com.position.y = 0;
     out.com.position.z = 0;
 
-    //GaitExecutor::print_gait(out);
-
     // Rotate Each Foot  
     tf::Quaternion q(
         gait.com.orientation.x,
@@ -349,8 +344,6 @@ Gait GaitExecutor::normalize_gait(Gait gait) {
     out.com.orientation.y = 0;
     out.com.orientation.z = 0;
     out.com.orientation.w = 1;
-
-    //GaitExecutor::print_gait(out);
 
     return out;
 }
