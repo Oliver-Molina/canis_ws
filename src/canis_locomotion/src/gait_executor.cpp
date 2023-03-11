@@ -119,6 +119,8 @@ void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
 }
 
 void GaitExecutor::Command_SR() {
+
+    print_gait(gait_normalized);
     
     sr_msg.point.x = gait_normalized.sr.x - center_to_front;
     sr_msg.point.y = gait_normalized.sr.y + body_width / 2.0;
@@ -200,11 +202,9 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
     
     if (percent_step >= 1) { 
         percent_step = 0;
-        print_gait(gait_next);
-        print_gait(gait_current);
+        //print_gait(gait_current);
         gait_current = gait_next;
     }
-
     Command_Body();
 
 }
@@ -212,7 +212,9 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
 void GaitExecutor::Command_Body() {
     Gait gait_linterped = gait_lerp(gait_current, gait_next, percent_step);
     Gait gait_raised_foot = gait_raise_foot(gait_linterped, step_height);
-    //Gait gait_normalized = normalize_gait(gait_raised_foot);
+    gait_normalized = normalize_gait(gait_raised_foot);
+
+    //print_gait(gait_normalized);
 
     GaitExecutor::Command_SR();
     GaitExecutor::Command_SL();
@@ -262,7 +264,7 @@ Point point_lerp(Point p1, Point p2, double percent) {
 
     return out;
 }
-Gait gait_lerp(Gait g1, Gait g2, double percent) {
+Gait GaitExecutor::gait_lerp(Gait g1, Gait g2, double percent) {
     Gait out;
 
     out.sr = point_lerp(g1.sr, g2.sr, percent);
@@ -280,7 +282,7 @@ Gait gait_lerp(Gait g1, Gait g2, double percent) {
 
     return out;
 }
-Gait normalize_gait(Gait gait) {
+Gait GaitExecutor::normalize_gait(Gait gait) {
     Gait out = gait;
 
     // Shift to origin first
@@ -304,6 +306,8 @@ Gait normalize_gait(Gait gait) {
     out.com.position.y = 0;
     out.com.position.z = 0;
 
+    //GaitExecutor::print_gait(out);
+
     // Rotate Each Foot  
     tf::Quaternion q(
         gait.com.orientation.x,
@@ -316,6 +320,7 @@ Gait normalize_gait(Gait gait) {
     tf::Vector3 sl_vec(out.sl.x, out.sl.y, out.sl.z);
     tf::Vector3 ir_vec(out.ir.x, out.ir.y, out.ir.z);
     tf::Vector3 il_vec(out.il.x, out.il.y, out.il.z);
+
     
     tf::Vector3 sr_norm, sl_norm, ir_norm, il_norm;
 
@@ -344,6 +349,8 @@ Gait normalize_gait(Gait gait) {
     out.com.orientation.y = 0;
     out.com.orientation.z = 0;
     out.com.orientation.w = 1;
+
+    //GaitExecutor::print_gait(out);
 
     return out;
 }

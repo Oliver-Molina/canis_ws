@@ -90,7 +90,15 @@ void GaitPlanner::InitializeGaits() {
     double half_width = body_width / 2;
     double eighth_len = (center_to_front + center_to_back) / 8;
     
+
     // SR Gait Forward
+    sr_fwd.com.orientation.x = 0;
+    sr_fwd.com.orientation.y = 0;
+    sr_fwd.com.orientation.z = 0;
+    sr_fwd.com.orientation.w = 1;
+    sr_fwd.com.position.x = 0;
+    sr_fwd.com.position.y = 0;
+    sr_fwd.com.position.z = walking_z;
     sr_fwd.sr.x = eighth_len;
     sr_fwd.sr.y = -half_width;
     sr_fwd.sr.z = 0;
@@ -106,6 +114,13 @@ void GaitPlanner::InitializeGaits() {
     sr_fwd.foot.data = 1;
 
     // SL Gait Forward
+    sl_fwd.com.orientation.x = 0;
+    sl_fwd.com.orientation.y = 0;
+    sl_fwd.com.orientation.z = 0;
+    sl_fwd.com.orientation.w = 1;
+    sl_fwd.com.position.x = 0;
+    sl_fwd.com.position.y = 0;
+    sl_fwd.com.position.z = walking_z;
     sl_fwd.sr.x = 3 * eighth_len;
     sl_fwd.sr.y = -half_width;
     sl_fwd.sr.z = 0;
@@ -121,6 +136,13 @@ void GaitPlanner::InitializeGaits() {
     sl_fwd.foot.data = 2;
 
     // IR Gait Forward
+    ir_fwd.com.orientation.x = 0;
+    ir_fwd.com.orientation.y = 0;
+    ir_fwd.com.orientation.z = 0;
+    ir_fwd.com.orientation.w = 1;
+    ir_fwd.com.position.x = 0;
+    ir_fwd.com.position.y = 0;
+    ir_fwd.com.position.z = walking_z;
     ir_fwd.sr.x = 2 * eighth_len;
     ir_fwd.sr.y = -half_width;
     ir_fwd.sr.z = 0;
@@ -136,6 +158,13 @@ void GaitPlanner::InitializeGaits() {
     ir_fwd.foot.data = 3;
 
      // IL Gait Forward
+    il_fwd.com.orientation.x = 0;
+    il_fwd.com.orientation.y = 0;
+    il_fwd.com.orientation.z = 0;
+    il_fwd.com.orientation.w = 1;
+    il_fwd.com.position.x = 0;
+    il_fwd.com.position.y = 0;
+    il_fwd.com.position.z = walking_z;
     il_fwd.sr.x = 4 * eighth_len;
     il_fwd.sr.y = -half_width;
     il_fwd.sr.z = 0;

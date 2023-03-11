@@ -37,6 +37,8 @@ class GaitExecutor {
         void Command_IL();
         void Command_Body();
         void Init();
+        Gait normalize_gait(Gait gait);
+        Gait gait_lerp(Gait g1, Gait g2, double percent);
 
         // Debugging
         void debug(std::vector<double> values, std::string message);
@@ -123,6 +125,5 @@ class GaitExecutor {
 
 double double_lerp(double x1, double x2, double percent);
 Point point_lerp(Point p1, Point p2, double percent);
-Gait gait_lerp(Gait g1, Gait g2, double percent);
-Gait normalize_gait(Gait gait);
+
 Gait gait_raise_foot(Gait gait, double step_height);
