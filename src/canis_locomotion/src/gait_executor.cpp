@@ -119,7 +119,7 @@ void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
 }
 
 void GaitExecutor::Command_SR() {
-    
+
     sr_msg.point.x = gait_normalized.sr.x - center_to_front;
     sr_msg.point.y = gait_normalized.sr.y + body_width / 2.0;
     sr_msg.point.z = gait_normalized.sr.z;
@@ -161,19 +161,19 @@ void GaitExecutor::Command_IL() {
 void GaitExecutor::Init() {
 
     gait_current.sr.x = center_to_front;
-    gait_current.sr.y = -body_width / 2.0;
+    gait_current.sr.y = -body_width / 2.0 - shoulder_length;
     gait_current.sr.z = 0;
 
     gait_current.sl.x = center_to_front;
-    gait_current.sl.y = body_width / 2.0;
+    gait_current.sl.y = body_width / 2.0 + shoulder_length;
     gait_current.sl.z = 0;
 
-    gait_current.ir.x = -center_to_back;
-    gait_current.ir.y = -body_width / 2.0;
+    gait_current.ir.x = -center_to_back - 0.05;
+    gait_current.ir.y = -body_width / 2.0 - shoulder_length;
     gait_current.ir.z = 0;
 
-    gait_current.il.x = -center_to_back;
-    gait_current.il.y = body_width / 2.0;
+    gait_current.il.x = -center_to_back - 0.05;
+    gait_current.il.y = body_width / 2.0 + shoulder_length;
     gait_current.il.z = 0;
 
     gait_current.com.position.x = 0;
@@ -207,6 +207,7 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
 }
 
 void GaitExecutor::Command_Body() {
+    print_gait(gait_next);
     Gait gait_linterped = gait_lerp(gait_current, gait_next, percent_step);
     Gait gait_raised_foot = gait_raise_foot(gait_linterped, step_height);
     gait_normalized = normalize_gait(gait_raised_foot);

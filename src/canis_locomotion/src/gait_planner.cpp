@@ -87,8 +87,10 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
 
 // Standard Gaits: SR, SL, IR, IL, Halt
 void GaitPlanner::InitializeGaits() {
-    double half_width = body_width / 2;
+    double half_width = body_width / 2 + shoulder_length;
     double eighth_len = (center_to_front + center_to_back) / 8;
+
+    
     
 
     // SR Gait Forward
@@ -105,10 +107,10 @@ void GaitPlanner::InitializeGaits() {
     sr_fwd.sl.x = 3 * eighth_len;
     sr_fwd.sl.y = half_width;
     sr_fwd.sl.z = 0;
-    sr_fwd.ir.x = -eighth_len;
+    sr_fwd.ir.x = -eighth_len - 0.05;
     sr_fwd.ir.y = -half_width;
     sr_fwd.ir.z = 0;
-    sr_fwd.il.x = -3 * eighth_len;
+    sr_fwd.il.x = -3 * eighth_len - 0.05;
     sr_fwd.il.y = half_width;
     sr_fwd.il.z = 0;
     sr_fwd.foot.data = 1;
@@ -127,10 +129,10 @@ void GaitPlanner::InitializeGaits() {
     sl_fwd.sl.x = eighth_len;
     sl_fwd.sl.y = half_width;
     sl_fwd.sl.z = 0;
-    sl_fwd.ir.x = -3 * eighth_len;
+    sl_fwd.ir.x = -3 * eighth_len - 0.05;
     sl_fwd.ir.y = -half_width;
     sl_fwd.ir.z = 0;
-    sl_fwd.il.x = -eighth_len;
+    sl_fwd.il.x = -eighth_len - 0.05;
     sl_fwd.il.y = half_width;
     sl_fwd.il.z = 0;
     sl_fwd.foot.data = 2;
@@ -149,10 +151,10 @@ void GaitPlanner::InitializeGaits() {
     ir_fwd.sl.x = 4 * eighth_len;
     ir_fwd.sl.y = half_width;
     ir_fwd.sl.z = 0;
-    ir_fwd.ir.x = -4 * eighth_len;
+    ir_fwd.ir.x = -4 * eighth_len - 0.05;
     ir_fwd.ir.y = -half_width;
     ir_fwd.ir.z = 0;
-    ir_fwd.il.x = -2 * eighth_len;
+    ir_fwd.il.x = -2 * eighth_len - 0.05;
     ir_fwd.il.y = half_width;
     ir_fwd.il.z = 0;
     ir_fwd.foot.data = 3;
@@ -171,10 +173,10 @@ void GaitPlanner::InitializeGaits() {
     il_fwd.sl.x = 2 * eighth_len;
     il_fwd.sl.y = half_width;
     il_fwd.sl.z = 0;
-    il_fwd.ir.x = -2 * eighth_len;
+    il_fwd.ir.x = -2 * eighth_len - 0.05;
     il_fwd.ir.y = -half_width;
     il_fwd.ir.z = 0;
-    il_fwd.il.x = -4 * eighth_len;
+    il_fwd.il.x = -4 * eighth_len - 0.05;
     il_fwd.il.y = half_width;
     il_fwd.il.z = 0;
     il_fwd.foot.data = 4;
@@ -276,19 +278,19 @@ Gait GaitPlanner::zeroGait() {
     Gait out;
 
     out.sr.x = center_to_front;
-    out.sr.y = -body_width / 2.0;
+    out.sr.y = -body_width / 2.0 - shoulder_length;
     out.sr.z = 0;
 
     out.sl.x = center_to_front;
-    out.sl.y = body_width / 2.0;
+    out.sl.y = body_width / 2.0 + shoulder_length;
     out.sl.z = 0;
 
-    out.ir.x = -center_to_back;
-    out.ir.y = -body_width / 2.0;
+    out.ir.x = -center_to_back - 0.05;
+    out.ir.y = -body_width / 2.0 - shoulder_length;
     out.ir.z = 0;
 
-    out.il.x = -center_to_back;
-    out.il.y = body_width / 2.0;
+    out.il.x = -center_to_back - 0.05;
+    out.il.y = body_width / 2.0 + shoulder_length;
     out.il.z = 0;
 
     out.com.position.x = 0;

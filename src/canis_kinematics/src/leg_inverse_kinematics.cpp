@@ -43,7 +43,7 @@ LegInverseKinematicsProcessor::LegInverseKinematicsProcessor(const ros::NodeHand
 void LegInverseKinematicsProcessor::Superior_Right_Leg_Pos_CB(const geometry_msgs::PointStamped::ConstPtr& Point) {
 
     double superior_right_x = Point->point.x;
-    double superior_right_y = Point->point.y;
+    double superior_right_y = -Point->point.y;
     double superior_right_z = Point->point.z;
 
     double dyz = sqrt(superior_right_y * superior_right_y + superior_right_z * superior_right_z);
@@ -141,7 +141,7 @@ void LegInverseKinematicsProcessor::Superior_Left_Leg_Pos_CB(const geometry_msgs
 void LegInverseKinematicsProcessor::Inferior_Right_Leg_Pos_CB(const geometry_msgs::PointStamped::ConstPtr& Point) {
 
     double inferior_right_x = Point->point.x;
-    double inferior_right_y = Point->point.y;
+    double inferior_right_y = -Point->point.y;
     double inferior_right_z = Point->point.z;
 
     double dyz = sqrt(inferior_right_y * inferior_right_y + inferior_right_z * inferior_right_z);
