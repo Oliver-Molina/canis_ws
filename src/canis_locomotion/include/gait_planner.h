@@ -121,6 +121,8 @@ class GaitPlanner {
  
         double walking_z;
         double step_height;
+        double leg_x_offset;
+        double leg_x_separation;
         Gait gait_command;
         Gait gait_current;
         std::queue<Gait> gait_queue;

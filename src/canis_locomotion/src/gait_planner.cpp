@@ -60,6 +60,8 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     nh_.param<double>("/frequency", operating_freq, 30);
     nh_.param<double>("/walking_height", walking_z, 0.15);
     nh_.param<double>("/step_height", step_height, 0.05);
+    nh_.param<double>("/leg_x_offset", leg_x_offset, 0.00);
+    nh_.param<double>("/leg_x_separation", leg_x_separation, 0.00);
 
     // #### Robot Gait Variables ####
     gait_current;
@@ -101,16 +103,16 @@ void GaitPlanner::InitializeGaits() {
     sr_fwd.com.position.x = 0;
     sr_fwd.com.position.y = 0;
     sr_fwd.com.position.z = walking_z;
-    sr_fwd.sr.x = eighth_len;
+    sr_fwd.sr.x = eighth_len+leg_x_offset;
     sr_fwd.sr.y = -half_width;
     sr_fwd.sr.z = 0;
-    sr_fwd.sl.x = 3 * eighth_len;
+    sr_fwd.sl.x = 3 * eighth_len+leg_x_offset;
     sr_fwd.sl.y = half_width;
     sr_fwd.sl.z = 0;
-    sr_fwd.ir.x = -eighth_len - 0.05;
+    sr_fwd.ir.x = -eighth_len+leg_x_separation+leg_x_offset;
     sr_fwd.ir.y = -half_width;
     sr_fwd.ir.z = 0;
-    sr_fwd.il.x = -3 * eighth_len - 0.05;
+    sr_fwd.il.x = -3 * eighth_len+leg_x_separation+leg_x_offset;
     sr_fwd.il.y = half_width;
     sr_fwd.il.z = 0;
     sr_fwd.foot.data = 1;
@@ -123,16 +125,16 @@ void GaitPlanner::InitializeGaits() {
     sl_fwd.com.position.x = 0;
     sl_fwd.com.position.y = 0;
     sl_fwd.com.position.z = walking_z;
-    sl_fwd.sr.x = 3 * eighth_len;
+    sl_fwd.sr.x = 3 * eighth_len+leg_x_offset;
     sl_fwd.sr.y = -half_width;
     sl_fwd.sr.z = 0;
-    sl_fwd.sl.x = eighth_len;
+    sl_fwd.sl.x = eighth_len+leg_x_offset;
     sl_fwd.sl.y = half_width;
     sl_fwd.sl.z = 0;
-    sl_fwd.ir.x = -3 * eighth_len - 0.05;
+    sl_fwd.ir.x = -3 * eighth_len+leg_x_separation+leg_x_offset;
     sl_fwd.ir.y = -half_width;
     sl_fwd.ir.z = 0;
-    sl_fwd.il.x = -eighth_len - 0.05;
+    sl_fwd.il.x = -eighth_len+leg_x_separation+leg_x_offset;
     sl_fwd.il.y = half_width;
     sl_fwd.il.z = 0;
     sl_fwd.foot.data = 2;
@@ -145,16 +147,16 @@ void GaitPlanner::InitializeGaits() {
     ir_fwd.com.position.x = 0;
     ir_fwd.com.position.y = 0;
     ir_fwd.com.position.z = walking_z;
-    ir_fwd.sr.x = 2 * eighth_len;
+    ir_fwd.sr.x = 2 * eighth_len+leg_x_offset;
     ir_fwd.sr.y = -half_width;
     ir_fwd.sr.z = 0;
-    ir_fwd.sl.x = 4 * eighth_len;
+    ir_fwd.sl.x = 4 * eighth_len+leg_x_offset;
     ir_fwd.sl.y = half_width;
     ir_fwd.sl.z = 0;
-    ir_fwd.ir.x = -4 * eighth_len - 0.05;
+    ir_fwd.ir.x = -4 * eighth_len+leg_x_separation+leg_x_offset;
     ir_fwd.ir.y = -half_width;
     ir_fwd.ir.z = 0;
-    ir_fwd.il.x = -2 * eighth_len - 0.05;
+    ir_fwd.il.x = -2 * eighth_len+leg_x_separation+leg_x_offset;
     ir_fwd.il.y = half_width;
     ir_fwd.il.z = 0;
     ir_fwd.foot.data = 3;
@@ -167,16 +169,16 @@ void GaitPlanner::InitializeGaits() {
     il_fwd.com.position.x = 0;
     il_fwd.com.position.y = 0;
     il_fwd.com.position.z = walking_z;
-    il_fwd.sr.x = 4 * eighth_len;
+    il_fwd.sr.x = 4 * eighth_len+leg_x_offset;
     il_fwd.sr.y = -half_width;
     il_fwd.sr.z = 0;
-    il_fwd.sl.x = 2 * eighth_len;
+    il_fwd.sl.x = 2 * eighth_len+leg_x_offset;
     il_fwd.sl.y = half_width;
     il_fwd.sl.z = 0;
-    il_fwd.ir.x = -2 * eighth_len - 0.05;
+    il_fwd.ir.x = -2 * eighth_len+leg_x_separation+leg_x_offset;
     il_fwd.ir.y = -half_width;
     il_fwd.ir.z = 0;
-    il_fwd.il.x = -4 * eighth_len - 0.05;
+    il_fwd.il.x = -4 * eighth_len+leg_x_separation+leg_x_offset;
     il_fwd.il.y = half_width;
     il_fwd.il.z = 0;
     il_fwd.foot.data = 4;
@@ -277,19 +279,19 @@ Gait GaitPlanner::zeroGait() {
     
     Gait out;
 
-    out.sr.x = center_to_front;
+    out.sr.x = center_to_front+leg_x_offset;
     out.sr.y = -body_width / 2.0 - shoulder_length;
     out.sr.z = 0;
 
-    out.sl.x = center_to_front;
+    out.sl.x = center_to_front+leg_x_offset;
     out.sl.y = body_width / 2.0 + shoulder_length;
     out.sl.z = 0;
 
-    out.ir.x = -center_to_back - 0.05;
+    out.ir.x = -center_to_back+leg_x_separation+leg_x_offset;
     out.ir.y = -body_width / 2.0 - shoulder_length;
     out.ir.z = 0;
 
-    out.il.x = -center_to_back - 0.05;
+    out.il.x = -center_to_back+leg_x_separation+leg_x_offset;
     out.il.y = body_width / 2.0 + shoulder_length;
     out.il.z = 0;
 
