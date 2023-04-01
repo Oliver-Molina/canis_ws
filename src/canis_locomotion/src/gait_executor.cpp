@@ -39,7 +39,7 @@
 GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     
     gait_sub = nh_.subscribe<robot_core::Gait>("/command/gait/next", 1000, &GaitExecutor::Gait_CB, this);
-    vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
+    vel_sub = nh_.subscribe<std_msgs::Float64>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
     reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitExecutor::Reset_CB, this);
 
     sr_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/leg/pos/superior/right", 1000);
@@ -104,10 +104,10 @@ void GaitExecutor::Gait_CB(const robot_core::Gait::ConstPtr& gait) {
     delta_percent = std::max(percent_theta, percent_dist);
 }
 
-void GaitExecutor::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) { 
+void GaitExecutor::Vel_CB(const std_msgs::Float64::ConstPtr& twist) { 
 
-    x_vel = twist->twist.linear.x;
-    theta_vel = twist->twist.angular.z;
+    x_vel = twist->data;
+    theta_vel = 0;
 
 }
 
