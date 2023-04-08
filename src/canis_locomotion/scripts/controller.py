@@ -6,21 +6,27 @@ from geometry_msgs.msg import TwistStamped
 from nav_msgs.msg import Odometry
 from robot_core.msg import PathQuat
 
+vel = TwistStamped()
+
+path = PathQuat()
+odom0 = Odometry()
+odom1 = Odometry()
+
+vel_pub = rospy.Publisher('/command/velocity', TwistStamped, queue_size=10)
+path_pub = rospy.Publisher('/command/path', PathQuat, queue_size=10)
+
 def dist_cb(dist):
-    vel = TwistStamped()
-    vel.twist.linear.x = 0.03
+
+    vel.twist.linear.x = 0.003
     vel.twist.angular.z = 0.1
-    vel_pub = rospy.Publisher('/command/velocity', TwistStamped, queue_size=10)
-    vel_pub.publish(vel)
-    path_pub = rospy.Publisher('/command/path', PathQuat, queue_size=10)
-    path = PathQuat()
-    odom0 = Odometry()
-    odom1 = Odometry()
+
     odom1.pose.pose.position.x = dist.data
     odom0.pose.pose.orientation.w = 1
     odom1.pose.pose.orientation.w = 1
     path.poses.append(odom0)
     path.poses.append(odom1)
+    
+    vel_pub.publish(vel)
     path_pub.publish(path)
 
 

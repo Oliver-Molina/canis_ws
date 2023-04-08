@@ -234,8 +234,6 @@ void GaitPlanner::Path_CB(const PathQuat::ConstPtr& path) {
     std::vector<Gait> gait_path = calculatePath();
     for (Gait gait : gait_path) {
         empty.push(gait);
-        //print_gait(gait);
-
     }
     std::swap(gait_queue, empty);
     gait_pub.publish(gait_queue.front());

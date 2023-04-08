@@ -1,18 +1,3 @@
-#include <math.h>
-#include <iomanip>
-#include <vector>
-#include <algorithm>
-
-#include <ros/ros.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <geometry_msgs/PointStamped.h>
-#include <std_msgs/Bool.h>
-#include <std_msgs/Float64.h>
-#include <robot_core/Gait.h>
-#include <robot_core/GaitVec.h>
-#include <tf/tf.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-
 #include "../include/gait_executor.h"
 
 // Functionality ######
@@ -34,12 +19,10 @@
 // il leg: Point
 
 
-
-
 GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     
     gait_sub = nh_.subscribe<robot_core::Gait>("/command/gait/next", 1000, &GaitExecutor::Gait_CB, this);
-    vel_sub = nh_.subscribe<std_msgs::Float64>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
+    vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
     reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitExecutor::Reset_CB, this);
 
     sr_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/leg/pos/superior/right", 1000);
@@ -104,18 +87,20 @@ void GaitExecutor::Gait_CB(const robot_core::Gait::ConstPtr& gait) {
     delta_percent = std::max(percent_theta, percent_dist);
 }
 
-void GaitExecutor::Vel_CB(const std_msgs::Float64::ConstPtr& twist) { 
+void GaitExecutor::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) { 
 
-    x_vel = twist->data;
-    theta_vel = 0;
+    x_vel = twist->twist.linear.x;
+    theta_vel = twist->twist.angular.z;
 
 }
 
 void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
 
-    //x_vel = twist->twist.linear.x;
-    //theta_vel = twist->twist.angular.z;
-
+    if(reset)
+    {
+        x_vel = 0;
+        theta_vel = 0;
+    }
 }
 
 void GaitExecutor::Command_SR() {
@@ -125,9 +110,9 @@ void GaitExecutor::Command_SR() {
     sr_msg.point.z = gait_normalized.sr.z;
 
     sr_msg.header.stamp = ros::Time::now();
-    sr_pub.publish(sr_msg);
-    
+    sr_pub.publish(sr_msg);    
 }
+
 void GaitExecutor::Command_SL() {
 
     sl_msg.point.x = gait_normalized.sl.x - center_to_front;
@@ -138,6 +123,7 @@ void GaitExecutor::Command_SL() {
     sl_pub.publish(sl_msg);
     
 }
+
 void GaitExecutor::Command_IR() {
     
     ir_msg.point.x = gait_normalized.ir.x + center_to_back;
@@ -148,6 +134,7 @@ void GaitExecutor::Command_IR() {
     ir_pub.publish(ir_msg);
     
 }
+
 void GaitExecutor::Command_IL() {
     
     il_msg.point.x = gait_normalized.il.x + center_to_back;
@@ -158,6 +145,7 @@ void GaitExecutor::Command_IL() {
     il_pub.publish(il_msg);
     
 }
+
 void GaitExecutor::Init() {
 
     gait_current.sr.x = center_to_front;
@@ -207,13 +195,12 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
 }
 
 void GaitExecutor::Command_Body() {
-    print_gait(gait_next);
     Gait gait_linterped = gait_lerp(gait_current, gait_next, percent_step);
-    Gait gait_raised_foot = gait_raise_foot(gait_linterped, step_height);
+    Gait gait_raised_foot = gait_raise_foot(gait_linterped);
     gait_normalized = normalize_gait(gait_raised_foot);
+    print_gait(gait_normalized);
 
-    //print_gait(gait_normalized);
-
+    debug(std::to_string(x_vel));
     GaitExecutor::Command_SR();
     GaitExecutor::Command_SL();
     GaitExecutor::Command_IR();
@@ -253,6 +240,7 @@ void GaitExecutor::debug(std::string message) {
 double double_lerp(double x1, double x2, double percent) {
     return x1 + (x2 - x1) * percent;
 }
+
 Point point_lerp(Point p1, Point p2, double percent) {
     Point out;
 
@@ -348,25 +336,31 @@ Gait GaitExecutor::normalize_gait(Gait gait) {
 
     return out;
 }
-Gait gait_raise_foot(Gait gait, double step_height) {
+
+Gait GaitExecutor::gait_raise_foot(Gait gait) {
     switch (gait.foot.data) {
         case 0: {
             break; 
         }
         case 1: {
-            gait.sr.z += step_height;
+            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
+            desired_z = 1;
+            gait.sr.z += desired_z;
             break; 
         }
         case 2: {
-            gait.sl.z += step_height;
+            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
+            gait.sl.z += desired_z;
             break; 
         }
         case 3: {
-            gait.ir.z += step_height;
+            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
+            gait.ir.z += desired_z;
             break; 
         }
         case 4: {
-            gait.il.z += step_height;
+            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
+            gait.il.z += desired_z;
             break; 
         }
     }
