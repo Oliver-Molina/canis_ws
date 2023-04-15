@@ -339,9 +339,6 @@ Gait GaitExecutor::normalize_gait(Gait gait) {
 
 Gait GaitExecutor::gait_raise_foot(Gait gait) {
     switch (gait.foot.data) {
-        case 0: {
-            break; 
-        }
         case 1: {
             double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
             desired_z = 1;
@@ -361,6 +358,9 @@ Gait GaitExecutor::gait_raise_foot(Gait gait) {
         case 4: {
             double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
             gait.il.z += desired_z;
+            break; 
+        }
+        default: {
             break; 
         }
     }
