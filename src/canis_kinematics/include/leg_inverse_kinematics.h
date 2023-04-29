@@ -62,6 +62,8 @@ class LegInverseKinematicsProcessor
 
         std_msgs::String debug_msg;
 
+        std_msgs::String test_pwm_msg;
+
 
         /**
          * Publishers and subscribers
@@ -82,6 +84,8 @@ class LegInverseKinematicsProcessor
         ros::Publisher inferior_left_forearm_pub;
 
         ros::Publisher debug_pub;
+
+        ros::Publisher test_pwm;
 
         ros::Subscriber SuperiorRightSub;
         ros::Subscriber SuperiorLeftSub;

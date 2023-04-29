@@ -33,6 +33,8 @@ LegInverseKinematicsProcessor::LegInverseKinematicsProcessor(const ros::NodeHand
     inferior_right_forearm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/forearm/inferior/right", 1000);
     inferior_left_forearm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/forearm/inferior/left", 1000);
 
+    test_pwm = nh_.advertise<std_msgs::String>("/test_pwm", 1000);
+
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
 
     nh_.param<double>("/shoulder_length", shoulder_length, 0.055);
