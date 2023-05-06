@@ -12,6 +12,8 @@
 #include <geometry_msgs/PointStamped.h>
 #include <tf/tf.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <regex>
+#include <sstream>
 
 #include <robot_core/Gait.h>
 #include <robot_core/GaitVec.h>
@@ -29,6 +31,8 @@ class GaitExecutor {
 
         // Callback methods
         void Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait);
+        void test_leg_position_CB(const std_msgs::String::ConstPtr &test_leg_position_msg);
+
 
         /**
          * Gait_CB (Gait Callback)
@@ -161,6 +165,7 @@ class GaitExecutor {
         geometry_msgs::PointStamped il_msg;
 
         std_msgs::String debug_msg;
+        std_msgs::String test_leg_position_msg;
 
 
         /**
@@ -180,6 +185,8 @@ class GaitExecutor {
         ros::Subscriber gait_sub;
         ros::Subscriber vel_sub;
         ros::Subscriber reset_sub;
+        ros::Subscriber test_leg_position_sub;
+
     
         // #### Gait Variables ####
  
@@ -200,6 +207,8 @@ class GaitExecutor {
         // #### Testing ####
         double percent_dist;
         double percent_theta;
+        bool testing_leg_position = false;
+
 
 };
 /**

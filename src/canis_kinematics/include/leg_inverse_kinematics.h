@@ -64,7 +64,6 @@ class LegInverseKinematicsProcessor
 
         std_msgs::String test_pwm_msg;
 
-
         /**
          * Publishers and subscribers
          */

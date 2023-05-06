@@ -79,7 +79,6 @@ class GaitPlanner {
         /*
          * Robot Params (Can be passed as params)
          */
-
         double shoulder_length;
         double arm_length;
         double forearm_length;
@@ -101,6 +100,7 @@ class GaitPlanner {
         geometry_msgs::PointStamped il_msg;
 
         std_msgs::String debug_msg;
+        std_msgs::String test_leg_position_msg;
 
 
         /**
@@ -108,6 +108,7 @@ class GaitPlanner {
          */
         ros::Publisher gait_pub;
         ros::Publisher debug_pub;
+        ros::Publisher test_leg_position_pub;
 
         //ros::Subscriber gait_sub;
         ros::Subscriber vel_sub;

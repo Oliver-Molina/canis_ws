@@ -17,7 +17,7 @@ LegInverseKinematicsProcessor::LegInverseKinematicsProcessor(const ros::NodeHand
     SuperiorLeftSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/leg/pos/superior/left", 1000, &LegInverseKinematicsProcessor::Superior_Left_Leg_Pos_CB, this);
     InferiorRightSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/leg/pos/inferior/right", 1000, &LegInverseKinematicsProcessor::Inferior_Right_Leg_Pos_CB, this);
     InferiorLeftSub = nh_.subscribe<geometry_msgs::PointStamped>("/command/leg/pos/inferior/left", 1000, &LegInverseKinematicsProcessor::Inferior_Left_Leg_Pos_CB, this);
-
+    
     superior_right_shoulder_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/shoulder/superior/right", 1000);
     superior_left_shoulder_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/shoulder/superior/left", 1000);
     inferior_right_shoulder_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/shoulder/inferior/right", 1000);
@@ -32,6 +32,7 @@ LegInverseKinematicsProcessor::LegInverseKinematicsProcessor(const ros::NodeHand
     superior_left_forearm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/forearm/superior/left", 1000);
     inferior_right_forearm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/forearm/inferior/right", 1000);
     inferior_left_forearm_pub = nh_.advertise<std_msgs::Float64>("/command/leg/angle/forearm/inferior/left", 1000);
+
 
     test_pwm = nh_.advertise<std_msgs::String>("/test_pwm", 1000);
 
@@ -132,12 +133,6 @@ void LegInverseKinematicsProcessor::Superior_Left_Leg_Pos_CB(const geometry_msgs
     stringstream << std::fixed << "shoulder: " << shoulder_abductor_pos << std::endl;
     std::string str = stringstream.str();
     debug_msg.data = str.c_str();
-    //debug_pub.publish(debug_msg);
-
-
-
-    //debug_msg.data = "Hello";
-    //debug_pub.publish(debug_msg);
 }
 
 void LegInverseKinematicsProcessor::Inferior_Right_Leg_Pos_CB(const geometry_msgs::PointStamped::ConstPtr& Point) {
@@ -248,5 +243,3 @@ void LegInverseKinematicsProcessor::Inferior_Left_Leg_Pos_CB(const geometry_msgs
     debug_msg.data = str.c_str();
     //debug_pub.publish(debug_msg);
 }
-
-
