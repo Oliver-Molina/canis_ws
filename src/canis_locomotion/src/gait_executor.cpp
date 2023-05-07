@@ -18,6 +18,7 @@
 // ir leg: Point
 // il leg: Point
 #define DEBUG_GAIT_EXECUTOR 0
+#define DEBUG_LEG_POSITIONS 1
 
 GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     
@@ -122,6 +123,14 @@ void GaitExecutor::Command_SR() {
     sr_msg.point.y = gait_normalized.sr.y + body_width / 2.0;
     sr_msg.point.z = gait_normalized.sr.z;
 
+
+    #if DEBUG_LEG_POSITIONS
+    std::vector<double> values_vec;
+    values_vec.push_back(sr_msg.point.x);
+    values_vec.push_back(sr_msg.point.y);
+    values_vec.push_back(sr_msg.point.z);
+    debug(values_vec, (std::string)__func__+" x: |, y: |, z: | ");
+    #endif
     sr_msg.header.stamp = ros::Time::now();
     sr_pub.publish(sr_msg);    
 }
@@ -134,7 +143,13 @@ void GaitExecutor::Command_SL() {
     sl_msg.point.x = gait_normalized.sl.x - center_to_front;
     sl_msg.point.y = gait_normalized.sl.y - body_width / 2.0;
     sl_msg.point.z = gait_normalized.sl.z;
-
+    #if DEBUG_LEG_POSITIONS
+    std::vector<double> values_vec;
+    values_vec.push_back(sr_msg.point.x);
+    values_vec.push_back(sr_msg.point.y);
+    values_vec.push_back(sr_msg.point.z);
+    debug(values_vec, (std::string)__func__+" x: |, y: |, z: | ");
+    #endif
     sl_msg.header.stamp = ros::Time::now();
     sl_pub.publish(sl_msg);
     
@@ -148,9 +163,16 @@ void GaitExecutor::Command_IR() {
     ir_msg.point.x = gait_normalized.ir.x + center_to_back;
     ir_msg.point.y = gait_normalized.ir.y + body_width / 2.0;
     ir_msg.point.z = gait_normalized.ir.z;
-
+    #if DEBUG_LEG_POSITIONS
+    std::vector<double> values_vec;
+    values_vec.push_back(sr_msg.point.x);
+    values_vec.push_back(sr_msg.point.y);
+    values_vec.push_back(sr_msg.point.z);
+    debug(values_vec, (std::string)__func__+" x: |, y: |, z: | ");
+    #endif
     ir_msg.header.stamp = ros::Time::now();
     ir_pub.publish(ir_msg);
+    
     
 }
 
@@ -162,7 +184,13 @@ void GaitExecutor::Command_IL() {
     il_msg.point.x = gait_normalized.il.x + center_to_back;
     il_msg.point.y = gait_normalized.il.y - body_width / 2.0;
     il_msg.point.z = gait_normalized.il.z;
-
+    #if DEBUG_LEG_POSITIONS
+    std::vector<double> values_vec;
+    values_vec.push_back(sr_msg.point.x);
+    values_vec.push_back(sr_msg.point.y);
+    values_vec.push_back(sr_msg.point.z);
+    debug(values_vec, (std::string)__func__+" x: |, y: |, z: | ");
+    #endif
     il_msg.header.stamp = ros::Time::now();
     il_pub.publish(il_msg);
     
@@ -463,31 +491,27 @@ void GaitExecutor::test_leg_position_CB(const std_msgs::String::ConstPtr& test_l
     debug(stream.str());
     switch(leg){
         case 0:
-            gait_current.sr.x = x;
-            gait_current.sr.y = y;
-            gait_current.sr.z = z;
-            gait_normalized = normalize_gait(gait_current);
+            gait_normalized.sr.x = x;
+            gait_normalized.sr.y = y;
+            gait_normalized.sr.z = z;
             Command_SR();
             break;
         case 1:
-            gait_current.sl.x = x;
-            gait_current.sl.y = y;
-            gait_current.sl.z = z;
-            gait_normalized = normalize_gait(gait_current);
+            gait_normalized.sl.x = x;
+            gait_normalized.sl.y = y;
+            gait_normalized.sl.z = z;
             Command_SL();
             break;
         case 2:
-            gait_current.ir.x = x;
-            gait_current.ir.y = y;
-            gait_current.ir.z = z;
-            gait_normalized = normalize_gait(gait_current);
+            gait_normalized.ir.x = x;
+            gait_normalized.ir.y = y;
+            gait_normalized.ir.z = z;
             Command_IR();
             break;
         case 3:
-            gait_current.il.x = x;
-            gait_current.il.y = y;
-            gait_current.il.z = z;
-            gait_normalized = normalize_gait(gait_current);
+            gait_normalized.il.x = x;
+            gait_normalized.il.y = y;
+            gait_normalized.il.z = z;
             Command_IL();
             break;
         default:
@@ -495,3 +519,24 @@ void GaitExecutor::test_leg_position_CB(const std_msgs::String::ConstPtr& test_l
 
     }
 }
+/*
+Default Leg Positions
+
+SR:
+
+"0 0 -0.055 -0.14"
+
+SL:
+
+"1 0 -0.055 -0.14"
+
+IR:
+
+"2 0 -0.055 -0.14"
+
+IL:
+
+"3 0 -0.055 -0.14"
+
+
+*/
