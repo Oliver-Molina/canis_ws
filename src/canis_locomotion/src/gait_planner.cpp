@@ -45,9 +45,11 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     
     percent_sub = nh_.subscribe<std_msgs::Float64>("/odometry/percent", 1000, &GaitPlanner::Percent_CB, this);
     path_sub = nh_.subscribe<robot_core::PathQuat>("/command/path", 10, &GaitPlanner::Path_CB, this);
+    reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitPlanner::Reset_CB, this);
 
     gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/next", 1000);
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
+    test_leg_position_pub = nh_.advertise<std_msgs::String>("/test_leg_position", 1000);
 
     // #### Robot Params ####
     nh_.param<double>("/shoulder_length", shoulder_length, 0.055);
@@ -234,8 +236,6 @@ void GaitPlanner::Path_CB(const PathQuat::ConstPtr& path) {
     std::vector<Gait> gait_path = calculatePath();
     for (Gait gait : gait_path) {
         empty.push(gait);
-        //print_gait(gait);
-
     }
     std::swap(gait_queue, empty);
     gait_pub.publish(gait_queue.front());
