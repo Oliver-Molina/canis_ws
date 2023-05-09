@@ -414,7 +414,6 @@ Gait GaitExecutor::gait_raise_foot(Gait gait) {
     switch (gait.foot.data) {
         case 1: {
             double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
-            desired_z = 1;
             gait.sr.z += desired_z;
             break; 
         }
