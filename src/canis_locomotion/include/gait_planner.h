@@ -20,7 +20,7 @@
 using namespace robot_core;
 using namespace geometry_msgs;
 
-enum Mode {Halt, SR, SL, IR, IL};
+enum WalkMode {Halt, SR, SL, IR, IL};
 
 class GaitPlanner {
     public:
@@ -136,7 +136,7 @@ class GaitPlanner {
         double margin;
         bool on;
         double percent;
-        Mode mode;
+        WalkMode mode;
         std::vector<nav_msgs::Odometry> path;
         double step_turn_rad;
 

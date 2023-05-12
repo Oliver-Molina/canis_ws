@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <queue>
 
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
@@ -21,6 +22,15 @@
 using namespace robot_core;
 using namespace geometry_msgs;
 
+enum Mode{
+    still,
+    walking,
+    crouching,
+    sittting,
+    laying_down,
+    recovering
+};
+
 class GaitExecutor {
     public:
         // Constructor
@@ -32,6 +42,8 @@ class GaitExecutor {
         // Callback methods
         void Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait);
         void test_leg_position_CB(const std_msgs::String::ConstPtr &test_leg_position_msg);
+        void crouch_CB(const std_msgs::Bool::ConstPtr &crouch);
+
 
 
         /**
@@ -73,7 +85,25 @@ class GaitExecutor {
         */
         void Pose_Update(const ros::TimerEvent& event);
 
+        /**
+         * Takes a point centered on the body's origin and recenters it on the origin of a given leg.
+         * @param point The current point centered on the body
+         * @param leg The specific leg to be recented about
+         * @returns The new point recentered about the specified leg
+        */
+        Point recenter_point(Point point, int leg);
+
+        /**
+         * 
+        */
+
         // Operation Methods
+
+        /**
+         * Updates the internaly stored leg locations.
+         * 
+        */
+        void set_leg_positions(Gait gait);
 
         /**
          * Command_SR (Command Superior Ritgh Leg)
@@ -186,6 +216,7 @@ class GaitExecutor {
         ros::Subscriber vel_sub;
         ros::Subscriber reset_sub;
         ros::Subscriber test_leg_position_sub;
+        ros::Subscriber crouch_sub;
 
     
         // #### Gait Variables ####
@@ -195,13 +226,16 @@ class GaitExecutor {
         Gait gait_normalized;
         Gait gait_current;
         Gait gait_next;
+        Gait current_gait;
         double percent_step;
         double x_vel;
         double theta_vel;
         double delta_percent;
-
         std_msgs::Float64 percent_msg;
+        std::queue<Gait> gaits;
 
+        // #### Leg Positions ####
+        Mode mode = still;
         Point sr, sl, ir, il;
 
         // #### Testing ####

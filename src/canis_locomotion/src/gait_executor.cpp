@@ -17,15 +17,22 @@
 // sl leg: Point
 // ir leg: Point
 // il leg: Point
-#define DEBUG_GAIT_EXECUTOR 0
+#define DEBUG_GAIT_EXECUTOR 1
 #define DEBUG_LEG_POSITIONS 1
+
+
+#define superior_right 0
+#define superior_left 1
+#define inferior_right 2
+#define inferior_left 3
 
 GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     
     gait_sub = nh_.subscribe<robot_core::Gait>("/command/gait/next", 1000, &GaitExecutor::Gait_CB, this);
     vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
     reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitExecutor::Reset_CB, this);
-    test_leg_position_sub = nh_.subscribe<std_msgs::String>("/test_leg_position", 1000, &GaitExecutor::test_leg_position_CB, this);
+    test_leg_position_sub = nh_.subscribe<std_msgs::String>("/test_leg_position", 10, &GaitExecutor::test_leg_position_CB, this);
+    crouch_sub = nh_.subscribe<std_msgs::Bool>("/crouch", 10, &GaitExecutor::crouch_CB, this);
 
 
     sr_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/leg/pos/superior/right", 1000);
@@ -70,6 +77,8 @@ void GaitExecutor::Gait_CB(const robot_core::Gait::ConstPtr& gait) {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
+    mode = walking;
+    testing_leg_position = false;
     gait_next = *gait;
     double delta_dist = 0;
     if (gait_current.foot.data != 1) {
@@ -109,8 +118,52 @@ void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
 
     if(reset)
     {
+        testing_leg_position = false;
+        mode = still;
         x_vel = 0;
         theta_vel = 0;
+    }
+}
+
+void GaitExecutor::crouch_CB(const std_msgs::Bool::ConstPtr &crouch){
+    #if DEBUG_GAIT_EXECUTOR
+    debug((std::string)__func__+" Executing...");
+    #endif
+    if(crouch->data){
+        mode = crouching;
+        while(!gaits.empty()) gaits.pop();
+        Gait high;
+        high.sr.x = 0;
+        high.sr.y = -0.055;
+        high.sr.z = -0.14;
+        high.sl.x = 0;
+        high.sl.y = 0.055;
+        high.sl.z = -0.14;
+        high.ir.x = -0.05;
+        high.ir.y = -0.055;
+        high.ir.z = -0.14;
+        high.il.x = -0.05;
+        high.il.y = 0.055;
+        high.il.z = -0.14;
+
+        Gait low;
+        low.sr.x = 0;
+        low.sr.y = -0.055;
+        low.sr.z = -0.9;;
+        low.sl.x = 0;
+        low.sl.y = 0.055;
+        low.sl.z = -0.9;
+        low.ir.x = -0.05;
+        low.ir.y = -0.055;
+        low.ir.z = -0.9;
+        low.il.x = -0.05;
+        low.il.y = 0.055;
+        low.il.z = -0.9;;
+        gaits.push(low);
+        gaits.push(high);
+        print_gait(gaits.front());
+        print_gait(gaits.back());
+        current_gait = gaits.back();
     }
 }
 
@@ -119,10 +172,7 @@ void GaitExecutor::Command_SR() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    sr_msg.point.x = gait_normalized.sr.x - center_to_front;
-    sr_msg.point.y = gait_normalized.sr.y + body_width / 2.0;
-    sr_msg.point.z = gait_normalized.sr.z;
-
+    sr_msg.point = sr;
 
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
@@ -140,14 +190,13 @@ void GaitExecutor::Command_SL() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    sl_msg.point.x = gait_normalized.sl.x - center_to_front;
-    sl_msg.point.y = gait_normalized.sl.y - body_width / 2.0;
-    sl_msg.point.z = gait_normalized.sl.z;
+    sl_msg.point = sl;
+
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
-    values_vec.push_back(sr_msg.point.x);
-    values_vec.push_back(sr_msg.point.y);
-    values_vec.push_back(sr_msg.point.z);
+    values_vec.push_back(sl_msg.point.x);
+    values_vec.push_back(sl_msg.point.y);
+    values_vec.push_back(sl_msg.point.z);
     debug(values_vec, (std::string)__func__+" x: |, y: |, z: | ");
     #endif
     sl_msg.header.stamp = ros::Time::now();
@@ -159,20 +208,18 @@ void GaitExecutor::Command_IR() {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
-    
-    ir_msg.point.x = gait_normalized.ir.x + center_to_back;
-    ir_msg.point.y = gait_normalized.ir.y + body_width / 2.0;
-    ir_msg.point.z = gait_normalized.ir.z;
+
+    ir_msg.point = ir;
+
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
-    values_vec.push_back(sr_msg.point.x);
-    values_vec.push_back(sr_msg.point.y);
-    values_vec.push_back(sr_msg.point.z);
+    values_vec.push_back(ir_msg.point.x);
+    values_vec.push_back(ir_msg.point.y);
+    values_vec.push_back(ir_msg.point.z);
     debug(values_vec, (std::string)__func__+" x: |, y: |, z: | ");
     #endif
     ir_msg.header.stamp = ros::Time::now();
     ir_pub.publish(ir_msg);
-    
     
 }
 
@@ -180,15 +227,14 @@ void GaitExecutor::Command_IL() {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
-    
-    il_msg.point.x = gait_normalized.il.x + center_to_back;
-    il_msg.point.y = gait_normalized.il.y - body_width / 2.0;
-    il_msg.point.z = gait_normalized.il.z;
+
+    il_msg.point = il;
+
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
-    values_vec.push_back(sr_msg.point.x);
-    values_vec.push_back(sr_msg.point.y);
-    values_vec.push_back(sr_msg.point.z);
+    values_vec.push_back(il_msg.point.x);
+    values_vec.push_back(il_msg.point.y);
+    values_vec.push_back(il_msg.point.z);
     debug(values_vec, (std::string)__func__+" x: |, y: |, z: | ");
     #endif
     il_msg.header.stamp = ros::Time::now();
@@ -228,6 +274,8 @@ void GaitExecutor::Init() {
 
     gait_normalized = normalize_gait(gait_current);
     gait_next = gait_current;
+    current_gait = gait_current;
+    gaits.push(gait_next);
     percent_step = 0;
 
     GaitExecutor::Command_Body();
@@ -248,29 +296,69 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
     if (percent_step >= 1) { 
         percent_step = 0;
         gait_current = gait_next;
+        current_gait = gaits.front();
+        gaits.pop();
+        gaits.push(current_gait);
     }
     Command_Body();
 
+}
+
+void GaitExecutor::set_leg_positions(Gait gait) {
+    sr = recenter_point(gait.sr, superior_right);
+    sl = recenter_point(gait.sl, superior_left);
+    ir = recenter_point(gait.ir, inferior_right);
+    il = recenter_point(gait.il, inferior_left);
 }
 
 void GaitExecutor::Command_Body() {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
-    Gait gait_linterped = gait_lerp(gait_current, gait_next, percent_step);
-    Gait gait_raised_foot = gait_raise_foot(gait_linterped);
-    gait_normalized = normalize_gait(gait_raised_foot);
-    print_gait(gait_normalized);
-
+    Gait gait_linterped;
+    Gait output;
+    switch(mode){
+        case still:
+            gait_normalized = normalize_gait(gait_current);
+            set_leg_positions(gait_normalized);
+            break;
+        case walking:
+            gait_linterped = gait_lerp(gait_current, gait_next, percent_step);
+            output = gait_raise_foot(gait_linterped);
+            gait_normalized = normalize_gait(output);
+            set_leg_positions(gait_normalized);
+            print_gait(gait_normalized);
+            break;
+        case crouching:
+            print_gait(gaits.front());
+            print_gait(gaits.back());
+            print_gait(current_gait);
+            output = gait_lerp(current_gait, gaits.front(),percent_step);
+            print_gait(output);
+            sr = output.sr;
+            sl = output.sl;
+            ir = output.ir;
+            il = output.il;
+            break;
+        case sittting:
+            break;
+        case laying_down:
+            break;
+        case recovering:
+            break;
+        default:
+            break;
+    }
     #if DEBUG_GAIT_EXECUTOR
-    debug("x-velocity" + std::to_string(x_vel));
+    debug("x-velocity: " + std::to_string(x_vel));
+    debug("mode: " + std::to_string((int)mode));
     #endif
     GaitExecutor::Command_SR();
     GaitExecutor::Command_SL();
     GaitExecutor::Command_IR();
     GaitExecutor::Command_IL();
 
-    pose_pub.publish(gait_raised_foot);
+    pose_pub.publish(output);
     pose_norm_pub.publish(gait_normalized);
 }
 
@@ -313,6 +401,35 @@ Point point_lerp(Point p1, Point p2, double percent) {
     out.z = double_lerp(p1.z, p2.z, percent);
 
     return out;
+}
+
+Point GaitExecutor::recenter_point(Point point, int leg){
+    Point newPoint;
+    switch(leg){
+        case superior_right:
+            newPoint.x = point.x - center_to_front;
+            newPoint.y = point.y + body_width / 2.0;
+            newPoint.z = point.z;
+            break;
+        case superior_left:
+            newPoint.x = point.x - center_to_front;
+            newPoint.y = point.y - body_width / 2.0;
+            newPoint.z = point.z;
+            break;
+        case inferior_right:
+            newPoint.x = point.x + center_to_front;
+            newPoint.y = point.y + body_width / 2.0;
+            newPoint.z = point.z;
+            break;
+        case inferior_left:
+            newPoint.x = point.x + center_to_front;
+            newPoint.y = point.y - body_width / 2.0;
+            newPoint.z = point.z;
+            break;
+        default:
+            break;
+    }
+    return newPoint;
 }
 Gait GaitExecutor::gait_lerp(Gait g1, Gait g2, double percent) {
     #if DEBUG_GAIT_EXECUTOR
@@ -480,37 +597,29 @@ void GaitExecutor::test_leg_position_CB(const std_msgs::String::ConstPtr& test_l
         debug("Failed to match String.");
         return;
     }
-
+    Point point;
     int leg  = std::stoi(base_match[1].str());
-    double x = std::stod(base_match[2].str());
-    double y = std::stod(base_match[3].str());
-    double z = std::stod(base_match[4].str());
+    point.x = std::stod(base_match[2].str());
+    point.y = std::stod(base_match[3].str());
+    point.z = std::stod(base_match[4].str());
     std::stringstream stream;
     stream<<"Setting Leg "<<base_match[1]<<" to position X: "<<base_match[2]<<" Y: "<<base_match[3]<<" Z: "<<base_match[4];
     debug(stream.str());
     switch(leg){
-        case 0:
-            gait_normalized.sr.x = x;
-            gait_normalized.sr.y = y;
-            gait_normalized.sr.z = z;
+        case superior_right:
+            sr = point;
             Command_SR();
             break;
-        case 1:
-            gait_normalized.sl.x = x;
-            gait_normalized.sl.y = y;
-            gait_normalized.sl.z = z;
+        case superior_left:
+            sl = point;
             Command_SL();
             break;
-        case 2:
-            gait_normalized.ir.x = x;
-            gait_normalized.ir.y = y;
-            gait_normalized.ir.z = z;
+        case inferior_right:
+            ir = point;
             Command_IR();
             break;
-        case 3:
-            gait_normalized.il.x = x;
-            gait_normalized.il.y = y;
-            gait_normalized.il.z = z;
+        case inferior_left:
+            il = point;
             Command_IL();
             break;
         default:
@@ -523,6 +632,7 @@ Default Leg Positions
 
 SR:
 
+rostopic pub /test_leg_position std_msgs/String 
 "0 0 -0.055 -0.14"
 
 SL:
@@ -531,11 +641,11 @@ SL:
 
 IR:
 
-"2 0 -0.055 -0.14"
+"2 -0.05 -0.055 -0.14"
 
 IL:
 
-"3 0 -0.055 -0.14"
+"3 -0 -0.055 -0.14"
 
 
 */

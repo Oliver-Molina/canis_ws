@@ -75,7 +75,7 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     margin = 1.0 - 0.0005;
     on = false;
     percent = 0;
-    mode = Mode::Halt;
+    mode = WalkMode::Halt;
     path = {};
     //gait_queue = {};
     step_turn_rad = 2 * M_PI / 48;
@@ -448,33 +448,33 @@ std::vector<Gait> GaitPlanner::walk(double dist) {
     
     while (steps_taken < steps_to_take) {
         switch(mode) {
-            case Mode::Halt: {
+            case WalkMode::Halt: {
                 gait_vector.push_back(il_fwd);
-                mode = Mode::SR; //Next Step
+                mode = WalkMode::SR; //Next Step
             }
             break;
 
-            case Mode::SR: {
+            case WalkMode::SR: {
                 gait_vector.push_back(sr_fwd);
-                mode = Mode::IL;
+                mode = WalkMode::IL;
             }
             break;
 
-            case Mode::SL: {
+            case WalkMode::SL: {
                 gait_vector.push_back(sl_fwd);
-                mode = Mode::IR;
+                mode = WalkMode::IR;
             }
             break;
 
-            case Mode::IR: {
+            case WalkMode::IR: {
                 gait_vector.push_back(ir_fwd);
-                mode = Mode::SR;
+                mode = WalkMode::SR;
             }
             break;
 
-            case Mode::IL: {
+            case WalkMode::IL: {
                 gait_vector.push_back(il_fwd);
-                mode = Mode::SL;
+                mode = WalkMode::SL;
             }
             break;
 
@@ -496,33 +496,33 @@ std::vector<Gait> GaitPlanner::turn(double rad) {
     if (rad >= 0) {
         while (steps_taken < steps_to_take) {
             switch(mode) {
-                case Mode::Halt: {
+                case WalkMode::Halt: {
                     gait_vector.push_back(il_turn);
-                    mode = Mode::IL;
+                    mode = WalkMode::IL;
                 }
                 break;
 
-                case Mode::SR: {
+                case WalkMode::SR: {
                     gait_vector.push_back(sr_turn);
-                    mode = Mode::SL;
+                    mode = WalkMode::SL;
                 }
                 break;
 
-                case Mode::SL: {
+                case WalkMode::SL: {
                     gait_vector.push_back(sl_turn);
-                    mode = Mode::IR;
+                    mode = WalkMode::IR;
                 }
                 break;
 
-                case Mode::IR: {
+                case WalkMode::IR: {
                     gait_vector.push_back(ir_turn);
-                    mode = Mode::IL;
+                    mode = WalkMode::IL;
                 }
                 break;
 
-                case Mode::IL: {
+                case WalkMode::IL: {
                     gait_vector.push_back(il_turn);
-                    mode = Mode::SR;
+                    mode = WalkMode::SR;
                 }
                 break;
 
@@ -538,33 +538,33 @@ std::vector<Gait> GaitPlanner::turn(double rad) {
     else {
         while (steps_taken < steps_to_take) {
             switch(mode) {
-                case Mode::Halt: {
+                case WalkMode::Halt: {
                     gait_vector.push_back(il_turn);
-                    mode = Mode::IL;
+                    mode = WalkMode::IL;
                 }
                 break;
 
-                case Mode::SR: {
+                case WalkMode::SR: {
                     gait_vector.push_back(sr_turn);
-                    mode = Mode::IL;
+                    mode = WalkMode::IL;
                 }
                 break;
 
-                case Mode::SL: {
+                case WalkMode::SL: {
                     gait_vector.push_back(sl_turn);
-                    mode = Mode::SR;
+                    mode = WalkMode::SR;
                 }
                 break;
 
-                case Mode::IR: {
+                case WalkMode::IR: {
                     gait_vector.push_back(ir_turn);
-                    mode = Mode::SL;
+                    mode = WalkMode::SL;
                 }
                 break;
 
-                case Mode::IL: {
+                case WalkMode::IL: {
                     gait_vector.push_back(il_turn);
-                    mode = Mode::IR;
+                    mode = WalkMode::IR;
                 }
                 break;
 
