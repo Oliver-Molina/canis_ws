@@ -28,7 +28,8 @@ enum Mode{
     crouching,
     sittting,
     laying_down,
-    recovering
+    recovering,
+    manual;
 };
 
 class GaitExecutor {

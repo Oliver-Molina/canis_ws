@@ -17,8 +17,8 @@
 // sl leg: Point
 // ir leg: Point
 // il leg: Point
-#define DEBUG_GAIT_EXECUTOR 1
-#define DEBUG_LEG_POSITIONS 1
+#define DEBUG_GAIT_EXECUTOR 0
+#define DEBUG_LEG_POSITIONS 0
 
 
 #define superior_right 0
@@ -131,6 +131,7 @@ void GaitExecutor::crouch_CB(const std_msgs::Bool::ConstPtr &crouch){
     #endif
     if(crouch->data){
         mode = crouching;
+        delta_percent = 0.01;
         while(!gaits.empty()) gaits.pop();
         Gait high;
         high.sr.x = 0;
@@ -149,16 +150,16 @@ void GaitExecutor::crouch_CB(const std_msgs::Bool::ConstPtr &crouch){
         Gait low;
         low.sr.x = 0;
         low.sr.y = -0.055;
-        low.sr.z = -0.9;;
+        low.sr.z = -0.09;;
         low.sl.x = 0;
         low.sl.y = 0.055;
-        low.sl.z = -0.9;
+        low.sl.z = -0.09;
         low.ir.x = -0.05;
         low.ir.y = -0.055;
-        low.ir.z = -0.9;
+        low.ir.z = -0.09;
         low.il.x = -0.05;
         low.il.y = 0.055;
-        low.il.z = -0.9;;
+        low.il.z = -0.09;;
         gaits.push(low);
         gaits.push(high);
         print_gait(gaits.front());
@@ -286,9 +287,7 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
-    if(testing_leg_position == true){
-        return;
-    }
+    debug(std::to_string(delta_percent));
     percent_step += delta_percent;
     percent_msg.data = percent_step;              
     percent_pub.publish(percent_msg);
@@ -318,38 +317,39 @@ void GaitExecutor::Command_Body() {
     Gait gait_linterped;
     Gait output;
     switch(mode){
-        case still:
+        case still:         // Retain current position
             gait_normalized = normalize_gait(gait_current);
             set_leg_positions(gait_normalized);
             break;
-        case walking:
+        case walking:       // Cycle four gaits
             gait_linterped = gait_lerp(gait_current, gait_next, percent_step);
             output = gait_raise_foot(gait_linterped);
             gait_normalized = normalize_gait(output);
             set_leg_positions(gait_normalized);
-            print_gait(gait_normalized);
             break;
-        case crouching:
-            print_gait(gaits.front());
-            print_gait(gaits.back());
-            print_gait(current_gait);
+        case crouching:     // Cycle two gaits
             output = gait_lerp(current_gait, gaits.front(),percent_step);
-            print_gait(output);
             sr = output.sr;
             sl = output.sl;
             ir = output.ir;
             il = output.il;
             break;
-        case sittting:
+        case sittting:      // Lower back legs and cycle that position
             break;
-        case laying_down:
+        case laying_down:   // Don't command the motors
+            return;
+        case recovering:    // Do something with imu/stability data
             break;
-        case recovering:
+        case manual:        // Manual leg control only update off of current leg positions
             break;
         default:
             break;
     }
     #if DEBUG_GAIT_EXECUTOR
+    print_gait(gaits.front());
+    print_gait(gaits.back());
+    print_gait(current_gait);
+    print_gait(output);
     debug("x-velocity: " + std::to_string(x_vel));
     debug("mode: " + std::to_string((int)mode));
     #endif
@@ -590,6 +590,7 @@ void GaitExecutor::print_gait(Gait gait) {
 
 void GaitExecutor::test_leg_position_CB(const std_msgs::String::ConstPtr& test_leg_position_msg){
     testing_leg_position = true;
+    mode = manual;
     std::string data = test_leg_position_msg->data;
     std::regex rgx("^([0-3]) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+)"); // fix the regex maybe.
     std::smatch base_match;
