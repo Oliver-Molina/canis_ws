@@ -26,10 +26,10 @@ enum Mode{
     still,
     walking,
     crouching,
-    sittting,
+    sitting,
     laying_down,
     recovering,
-    manual;
+    manual
 };
 
 class GaitExecutor {
@@ -42,8 +42,13 @@ class GaitExecutor {
 
         // Callback methods
         void Gait_Replace_CB(const robot_core::GaitVec::ConstPtr& gait);
-        void test_leg_position_CB(const std_msgs::String::ConstPtr &test_leg_position_msg);
+
+        // Animation Callback Methods
+        void manual_position_CB(const std_msgs::String::ConstPtr &leg_position);
         void crouch_CB(const std_msgs::Bool::ConstPtr &crouch);
+        void sit_CB(const std_msgs::Bool::ConstPtr &sit);
+        void lay_down_CB(const std_msgs::Bool::ConstPtr &lay_down);
+
 
 
 
@@ -196,7 +201,7 @@ class GaitExecutor {
         geometry_msgs::PointStamped il_msg;
 
         std_msgs::String debug_msg;
-        std_msgs::String test_leg_position_msg;
+        std_msgs::String leg_position_msg;
 
 
         /**
@@ -216,18 +221,21 @@ class GaitExecutor {
         ros::Subscriber gait_sub;
         ros::Subscriber vel_sub;
         ros::Subscriber reset_sub;
-        ros::Subscriber test_leg_position_sub;
+        ros::Subscriber manual_position_sub;
         ros::Subscriber crouch_sub;
+        ros::Subscriber sit_sub;
+        ros::Subscriber lay_down_sub;
 
     
         // #### Gait Variables ####
  
         double walking_z;
         double step_height;
+        Gait default_gait;
         Gait gait_normalized;
         Gait gait_current;
         Gait gait_next;
-        Gait current_gait;
+        Gait previous_gait;
         double percent_step;
         double x_vel;
         double theta_vel;
@@ -237,7 +245,7 @@ class GaitExecutor {
 
         // #### Leg Positions ####
         Mode mode = still;
-        Point sr, sl, ir, il;
+        Gait current_gait;
 
         // #### Testing ####
         double percent_dist;

@@ -17,7 +17,7 @@
 // sl leg: Point
 // ir leg: Point
 // il leg: Point
-#define DEBUG_GAIT_EXECUTOR 0
+#define DEBUG_GAIT_EXECUTOR 1
 #define DEBUG_LEG_POSITIONS 0
 
 
@@ -31,8 +31,10 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     gait_sub = nh_.subscribe<robot_core::Gait>("/command/gait/next", 1000, &GaitExecutor::Gait_CB, this);
     vel_sub = nh_.subscribe<geometry_msgs::TwistStamped>("/command/velocity", 1000, &GaitExecutor::Vel_CB, this);
     reset_sub = nh_.subscribe<std_msgs::Bool>("/reset/gait", 1000, &GaitExecutor::Reset_CB, this);
-    test_leg_position_sub = nh_.subscribe<std_msgs::String>("/test_leg_position", 10, &GaitExecutor::test_leg_position_CB, this);
+    manual_position_sub = nh_.subscribe<std_msgs::String>("/manual_position", 10, &GaitExecutor::manual_position_CB, this);
     crouch_sub = nh_.subscribe<std_msgs::Bool>("/crouch", 10, &GaitExecutor::crouch_CB, this);
+    sit_sub = nh_.subscribe<std_msgs::Bool>("/sit", 10, &GaitExecutor::sit_CB, this);
+    lay_down_sub = nh_.subscribe<std_msgs::Bool>("/layDown", 10, &GaitExecutor::lay_down_CB, this);
 
 
     sr_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/leg/pos/superior/right", 1000);
@@ -62,7 +64,7 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     gait_current;
     gait_next;
     gait_normalized;
-    percent_step = 0.;
+    percent_step = 0;
     x_vel = 0;
     theta_vel = 0;
     delta_percent = 0;
@@ -122,6 +124,8 @@ void GaitExecutor::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
         mode = still;
         x_vel = 0;
         theta_vel = 0;
+        delta_percent = 0;
+
     }
 }
 
@@ -129,43 +133,105 @@ void GaitExecutor::crouch_CB(const std_msgs::Bool::ConstPtr &crouch){
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
-    if(crouch->data){
-        mode = crouching;
-        delta_percent = 0.01;
-        while(!gaits.empty()) gaits.pop();
-        Gait high;
-        high.sr.x = 0;
-        high.sr.y = -0.055;
-        high.sr.z = -0.14;
-        high.sl.x = 0;
-        high.sl.y = 0.055;
-        high.sl.z = -0.14;
-        high.ir.x = -0.05;
-        high.ir.y = -0.055;
-        high.ir.z = -0.14;
-        high.il.x = -0.05;
-        high.il.y = 0.055;
-        high.il.z = -0.14;
+    // Clear gait queue and fill with two gait instances that cycle back and forth
+    if(!crouch->data)
+        return;
+    mode = crouching;
+    delta_percent = 0.020;
+    percent_step = 0;
+    while(!gaits.empty()) gaits.pop();
 
-        Gait low;
-        low.sr.x = 0;
-        low.sr.y = -0.055;
-        low.sr.z = -0.09;;
-        low.sl.x = 0;
-        low.sl.y = 0.055;
-        low.sl.z = -0.09;
-        low.ir.x = -0.05;
-        low.ir.y = -0.055;
-        low.ir.z = -0.09;
-        low.il.x = -0.05;
-        low.il.y = 0.055;
-        low.il.z = -0.09;;
-        gaits.push(low);
-        gaits.push(high);
-        print_gait(gaits.front());
-        print_gait(gaits.back());
-        current_gait = gaits.back();
-    }
+    Gait low;
+    low.sr.x = -0.05;
+    low.sl.x = -0.05;
+    low.ir.x = -0.05;
+    low.il.x = -0.05;
+
+    low.sr.y = -0.05;
+    low.sl.y = 0.05;
+    low.ir.y = -0.05;
+    low.il.y = 0.05;
+
+    low.sr.z = -0.12;
+    low.sl.z = -0.12;
+    low.ir.z = -0.12;
+    low.il.z = -0.12;
+
+    Gait high = low;
+
+    high.sr.z = -0.14;
+    high.sl.z = -0.14;
+    high.ir.z = -0.14;
+    high.il.z = -0.14;
+
+    previous_gait = current_gait;
+    gaits.push(high);
+    gaits.push(low);
+}
+
+void GaitExecutor::sit_CB(const std_msgs::Bool::ConstPtr &sit){
+    #if DEBUG_GAIT_EXECUTOR
+    debug((std::string)__func__+" Executing...");
+    #endif
+    // Transition from current position to back legs down
+    if(!sit->data)
+        return;
+    mode = sitting;
+    delta_percent = 0.015;
+    percent_step = 0;
+    while(!gaits.empty()) gaits.pop();
+    // rostopic pub /manual_position std_msgs/String "0 -0.15 -0.055 -0.15"
+
+    Gait sit_gait;
+    sit_gait.sr.x = -0.15;
+    sit_gait.sl.x = -0.15;
+    sit_gait.ir.x = -0.0;
+    sit_gait.il.x = -0.0;
+
+    sit_gait.sr.y = -0.05;
+    sit_gait.sl.y = 0.05;
+    sit_gait.ir.y = -0.05;
+    sit_gait.il.y = 0.05;
+
+    sit_gait.sr.z = -0.15;
+    sit_gait.sl.z = -0.15;
+    sit_gait.ir.z = -0.09;
+    sit_gait.il.z = -0.09;
+    previous_gait = current_gait;
+    gaits.push(sit_gait);
+    
+}
+void GaitExecutor::lay_down_CB(const std_msgs::Bool::ConstPtr &lay_down){
+    #if DEBUG_GAIT_EXECUTOR
+    debug((std::string)__func__+" Executing...");
+    #endif
+    // Move all legs to x,y origin and reduce z until at the ground
+    if(!lay_down->data)
+        return;
+    mode = laying_down;
+    delta_percent = 0.015;
+    percent_step = 0;
+    while(!gaits.empty()) gaits.pop();
+    Gait lay_down_gait;
+    //rostopic pub /manual_position std_msgs/String "1 0.045 0.055 -0.06"
+
+    lay_down_gait.sr.z = -0.06;
+    lay_down_gait.sl.z = -0.06;
+    lay_down_gait.ir.z = -0.06;
+    lay_down_gait.il.z = -0.06;
+
+    lay_down_gait.sr.x = 0.045;
+    lay_down_gait.sl.x = 0.045;
+    lay_down_gait.ir.x = 0.045;
+    lay_down_gait.il.x = 0.045;
+
+    lay_down_gait.sr.y = -0.055;
+    lay_down_gait.sl.y = 0.055;
+    lay_down_gait.ir.y = -0.055;
+    lay_down_gait.il.y = 0.055;
+
+    previous_gait = current_gait;
+    gaits.push(lay_down_gait);
 }
 
 void GaitExecutor::Command_SR() {
@@ -173,7 +239,7 @@ void GaitExecutor::Command_SR() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    sr_msg.point = sr;
+    sr_msg.point = current_gait.sr;
 
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
@@ -191,7 +257,7 @@ void GaitExecutor::Command_SL() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    sl_msg.point = sl;
+    sl_msg.point = current_gait.sl;
 
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
@@ -210,7 +276,7 @@ void GaitExecutor::Command_IR() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    ir_msg.point = ir;
+    ir_msg.point = current_gait.ir;
 
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
@@ -229,7 +295,7 @@ void GaitExecutor::Command_IL() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    il_msg.point = il;
+    il_msg.point = current_gait.il;
 
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
@@ -247,35 +313,36 @@ void GaitExecutor::Init() {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
+    
+    default_gait.sr.x = center_to_front;
+    default_gait.sr.y = -body_width / 2.0 - shoulder_length;
+    default_gait.sr.z = 0;
 
-    gait_current.sr.x = center_to_front;
-    gait_current.sr.y = -body_width / 2.0 - shoulder_length;
-    gait_current.sr.z = 0;
+    default_gait.sl.x = center_to_front;
+    default_gait.sl.y = body_width / 2.0 + shoulder_length;
+    default_gait.sl.z = 0;
 
-    gait_current.sl.x = center_to_front;
-    gait_current.sl.y = body_width / 2.0 + shoulder_length;
-    gait_current.sl.z = 0;
+    default_gait.ir.x = -center_to_back - 0.05;
+    default_gait.ir.y = -body_width / 2.0 - shoulder_length;
+    default_gait.ir.z = 0;
 
-    gait_current.ir.x = -center_to_back - 0.05;
-    gait_current.ir.y = -body_width / 2.0 - shoulder_length;
-    gait_current.ir.z = 0;
+    default_gait.il.x = -center_to_back - 0.05;
+    default_gait.il.y = body_width / 2.0 + shoulder_length;
+    default_gait.il.z = 0;
 
-    gait_current.il.x = -center_to_back - 0.05;
-    gait_current.il.y = body_width / 2.0 + shoulder_length;
-    gait_current.il.z = 0;
+    default_gait.com.position.x = 0;
+    default_gait.com.position.y = 0;
+    default_gait.com.position.z = walking_z;
 
-    gait_current.com.position.x = 0;
-    gait_current.com.position.y = 0;
-    gait_current.com.position.z = walking_z;
-
-    gait_current.com.orientation.x = 0;
-    gait_current.com.orientation.y = 0;
-    gait_current.com.orientation.z = 0;
-    gait_current.com.orientation.w = 1;
+    default_gait.com.orientation.x = 0;
+    default_gait.com.orientation.y = 0;
+    default_gait.com.orientation.z = 0;
+    default_gait.com.orientation.w = 1;
+    gait_current = default_gait;
 
     gait_normalized = normalize_gait(gait_current);
     gait_next = gait_current;
-    current_gait = gait_current;
+    previous_gait = gait_current;
     gaits.push(gait_next);
     percent_step = 0;
 
@@ -295,24 +362,25 @@ void GaitExecutor::Pose_Update(const ros::TimerEvent& event) {
     if (percent_step >= 1) { 
         percent_step = 0;
         gait_current = gait_next;
-        current_gait = gaits.front();
+        previous_gait = gaits.front();
         gaits.pop();
-        gaits.push(current_gait);
+        gaits.push(previous_gait);
     }
     Command_Body();
 
 }
 
 void GaitExecutor::set_leg_positions(Gait gait) {
-    sr = recenter_point(gait.sr, superior_right);
-    sl = recenter_point(gait.sl, superior_left);
-    ir = recenter_point(gait.ir, inferior_right);
-    il = recenter_point(gait.il, inferior_left);
+    current_gait.sr = recenter_point(gait.sr, superior_right);
+    current_gait.sl = recenter_point(gait.sl, superior_left);
+    current_gait.ir = recenter_point(gait.ir, inferior_right);
+    current_gait.il = recenter_point(gait.il, inferior_left);
 }
 
 void GaitExecutor::Command_Body() {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
+    debug("Mode: " + std::to_string(mode));
     #endif
     Gait gait_linterped;
     Gait output;
@@ -328,16 +396,14 @@ void GaitExecutor::Command_Body() {
             set_leg_positions(gait_normalized);
             break;
         case crouching:     // Cycle two gaits
-            output = gait_lerp(current_gait, gaits.front(),percent_step);
-            sr = output.sr;
-            sl = output.sl;
-            ir = output.ir;
-            il = output.il;
+            current_gait = gait_lerp(previous_gait, gaits.front(),percent_step);
             break;
-        case sittting:      // Lower back legs and cycle that position
+        case sitting:      // Lower back legs and cycle that position
+            current_gait = gait_lerp(previous_gait, gaits.front(),percent_step);
             break;
         case laying_down:   // Don't command the motors
-            return;
+            current_gait = gait_lerp(previous_gait, gaits.front(),percent_step);
+            break;
         case recovering:    // Do something with imu/stability data
             break;
         case manual:        // Manual leg control only update off of current leg positions
@@ -353,10 +419,11 @@ void GaitExecutor::Command_Body() {
     debug("x-velocity: " + std::to_string(x_vel));
     debug("mode: " + std::to_string((int)mode));
     #endif
-    GaitExecutor::Command_SR();
-    GaitExecutor::Command_SL();
+
     GaitExecutor::Command_IR();
     GaitExecutor::Command_IL();
+    GaitExecutor::Command_SR();
+    GaitExecutor::Command_SL();
 
     pose_pub.publish(output);
     pose_norm_pub.publish(gait_normalized);
@@ -588,7 +655,7 @@ void GaitExecutor::print_gait(Gait gait) {
 
 }
 
-void GaitExecutor::test_leg_position_CB(const std_msgs::String::ConstPtr& test_leg_position_msg){
+void GaitExecutor::manual_position_CB(const std_msgs::String::ConstPtr& test_leg_position_msg){
     testing_leg_position = true;
     mode = manual;
     std::string data = test_leg_position_msg->data;
@@ -608,19 +675,19 @@ void GaitExecutor::test_leg_position_CB(const std_msgs::String::ConstPtr& test_l
     debug(stream.str());
     switch(leg){
         case superior_right:
-            sr = point;
+            current_gait.sr = point;
             Command_SR();
             break;
         case superior_left:
-            sl = point;
+            current_gait.sl = point;
             Command_SL();
             break;
         case inferior_right:
-            ir = point;
+            current_gait.ir = point;
             Command_IR();
             break;
         case inferior_left:
-            il = point;
+            current_gait.il = point;
             Command_IL();
             break;
         default:
@@ -633,7 +700,7 @@ Default Leg Positions
 
 SR:
 
-rostopic pub /test_leg_position std_msgs/String 
+rostopic pub /manual_position std_msgs/String "0 -0.15 -0.055 -0.15"
 "0 0 -0.055 -0.14"
 
 SL:

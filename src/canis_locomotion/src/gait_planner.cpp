@@ -77,7 +77,6 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     percent = 0;
     mode = WalkMode::Halt;
     path = {};
-    //gait_queue = {};
     step_turn_rad = 2 * M_PI / 48;
 
     // #### Testing ####
