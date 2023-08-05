@@ -14,7 +14,6 @@
 #include <robot_core/Gait.h>
 #include <robot_core/GaitVec.h>
 #include <robot_core/PathQuat.h>
-//#include <robot_core/PathQuat.h>
 #include <tf/tf.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -305,6 +304,7 @@ Gait GaitPlanner::zeroGait() {
 
     return out;
 }
+
 geometry_msgs::Pose GaitPlanner::zeroPose() {
     geometry_msgs::Pose out;
 
@@ -316,74 +316,6 @@ geometry_msgs::Pose GaitPlanner::zeroPose() {
     out.orientation.y = 0;
     out.orientation.z = 0;
     out.orientation.w = 1;
-
-    return out;
-}
-
-Gait GaitPlanner::normalize_gait(Gait gait) {
-    Gait out = gait;
-
-    // Shift to origin first
-    out.sr.x -= gait.com.position.x;
-    out.sr.y -= gait.com.position.y;
-    out.sr.z -= gait.com.position.z;
-
-    out.sl.x -= gait.com.position.x;
-    out.sl.y -= gait.com.position.y;
-    out.sl.z -= gait.com.position.z;
-
-    out.ir.x -= gait.com.position.x;
-    out.ir.y -= gait.com.position.y;
-    out.ir.z -= gait.com.position.z;
-
-    out.il.x -= gait.com.position.x;
-    out.il.y -= gait.com.position.y;
-    out.il.z -= gait.com.position.z;
-
-    out.com.position.x = 0;
-    out.com.position.y = 0;
-    out.com.position.z = 0;
-
-    // Rotate Each Foot  
-    tf::Quaternion q(
-        gait.com.orientation.x,
-        gait.com.orientation.y,
-        gait.com.orientation.z,
-        gait.com.orientation.w);
-    tf::Matrix3x3 m(q);
-
-    tf::Vector3 sr_vec(out.sr.x, out.sr.y, out.sr.z);
-    tf::Vector3 sl_vec(out.sl.x, out.sl.y, out.sl.z);
-    tf::Vector3 ir_vec(out.ir.x, out.ir.y, out.ir.z);
-    tf::Vector3 il_vec(out.il.x, out.il.y, out.il.z);
-    
-    tf::Vector3 sr_norm, sl_norm, ir_norm, il_norm;
-
-    sr_norm = m.inverse()*sr_vec;
-    sl_norm = m.inverse()*sl_vec;
-    ir_norm = m.inverse()*ir_vec;
-    il_norm = m.inverse()*il_vec;
-
-    out.sr.x = sr_norm.getX();
-    out.sr.y = sr_norm.getY();
-    out.sr.z = sr_norm.getZ();
-
-    out.sl.x = sl_norm.getX();
-    out.sl.y = sl_norm.getY();
-    out.sl.z = sl_norm.getZ();
-
-    out.ir.x = ir_norm.getX();
-    out.ir.y = ir_norm.getY();
-    out.ir.z = ir_norm.getZ();
-
-    out.il.x = il_norm.getX();
-    out.il.y = il_norm.getY();
-    out.il.z = il_norm.getZ();
-
-    out.com.orientation.x = 0;
-    out.com.orientation.y = 0;
-    out.com.orientation.z = 0;
-    out.com.orientation.w = 1;
 
     return out;
 }
