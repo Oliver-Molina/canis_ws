@@ -8,9 +8,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh_private("~");
 
     GaitExecutor ge = GaitExecutor(nh_private);
-    ge.Init();
-    ros::Timer timer = nh_private.createTimer(ros::Duration(1.0 / ge.operating_freq), &GaitExecutor::Pose_Update, &ge);
-    
+    ge.Init();    
     ros::spin();
     return 0;
 }

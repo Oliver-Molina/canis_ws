@@ -22,6 +22,17 @@ using namespace geometry_msgs;
 
 enum WalkMode {Halt, SR, SL, IR, IL};
 
+enum Mode{
+    still,
+    walking,
+    crouching,
+    sitting,
+    laying_down,
+    recovering,
+    manual
+};
+
+
 class GaitPlanner {
     public:
         // Constructor
@@ -31,29 +42,30 @@ class GaitPlanner {
         ~GaitPlanner() = default;
 
         // Callback methods
-        void Gait_CB(const robot_core::Gait::ConstPtr& gait);
         void Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist);
         void Path_CB(const PathQuat::ConstPtr& path);
         void Reset_CB(const std_msgs::Bool::ConstPtr& reset);
         void Percent_CB(const std_msgs::Float64::ConstPtr& percent_msg);
-        void Pose_Update(const ros::TimerEvent& event);
+        void crouch_CB(const std_msgs::Bool::ConstPtr &crouch);
+        void sit_CB(const std_msgs::Bool::ConstPtr &sit);
+        void lay_down_CB(const std_msgs::Bool::ConstPtr &lay_down);
+
+        /**
+         * Frame_CB (Frame Callback)
+         * 
+         * Calculates and publishes the desired gait for the next frame
+         * 
+         * @param event It's just a timer.
+        */
+        void Frame_CB(const ros::TimerEvent& event);
 
         // Operation Methods
-        void Command_SR();
-        void Command_SL();
-        void Command_IR();
-        void Command_IL();
-        void Command_Body();
         void Init();
-        void Calc_Deltas();
         std::vector<Gait> calculatePath();
         std::vector<Gait> turn(double turn_rad);
         std::vector<Gait> walk(double dist);
-        geometry_msgs::Pose safePose(double dist);
         geometry_msgs::Pose zeroPose();
         Gait zeroGait();
-        Gait transformGait(Gait gait, Pose transform);
-        Gait normalize_gait(Gait gait);
         std::vector<Gait> pathCommand(nav_msgs::Odometry end, nav_msgs::Odometry start);
         void InitializeGaits(); 
 
@@ -64,10 +76,6 @@ class GaitPlanner {
         void debug(std::vector<double> values, std::string message);
         void debug(std::string message);
         void print_gait(Gait gait);
-    
-
-
-
 
     private:
         /**
@@ -108,6 +116,7 @@ class GaitPlanner {
          */
         ros::Publisher gait_pub;
         ros::Publisher debug_pub;
+        ros::Publisher percent_pub;
         ros::Publisher test_leg_position_pub;
 
         //ros::Subscriber gait_sub;
@@ -115,6 +124,9 @@ class GaitPlanner {
         ros::Subscriber reset_sub;
         ros::Subscriber percent_sub;
         ros::Subscriber path_sub;
+        ros::Subscriber crouch_sub;
+        ros::Subscriber sit_sub;
+        ros::Subscriber lay_down_sub;
 
         std_msgs::Float64 percent_msg;
     
@@ -139,7 +151,7 @@ class GaitPlanner {
         WalkMode mode;
         std::vector<nav_msgs::Odometry> path;
         double step_turn_rad;
-
+        double operating_freq; // TBD, more testing
 
         // #### Standard Gaits ####
         
@@ -147,12 +159,10 @@ class GaitPlanner {
         Gait sl_fwd;
         Gait ir_fwd;
         Gait il_fwd;
-
         Gait sr_turn;
         Gait sl_turn;
         Gait ir_turn;
         Gait il_turn;
-
         Gait halt;
 
         // #### Testing ####
@@ -161,13 +171,35 @@ class GaitPlanner {
         double radius;
         double period;
         double rot_freq;
-        ros::Publisher vel_pub;
+        bool testing_leg_position = false;
+
+                // #### Gait Variables ####
+ 
+        double walking_z;
+        double step_height;
+        Gait default_gait;
+        Gait gait_normalized;
+        Gait gait_current;
+        Gait gait_next;
+        Gait previous_gait;
+        double percent_step;
+        double x_vel;
+        double theta_vel;
+        double delta_percent;
+        std_msgs::Float64 percent_msg;
+        std::queue<Gait> gaits;
+        double operating_freq; // TBD, more testing
+
+
+        // #### Testing ####
+        double percent_dist;
+        double percent_theta;
+
 
 };
 
 double double_lerp(double x1, double x2, double percent);
 Point point_lerp(Point p1, Point p2, double percent);
 Gait gait_lerp(Gait g1, Gait g2, double percent);
-Gait normalize_gait(Gait gait);
 nav_msgs::Odometry translate(nav_msgs::Odometry end, nav_msgs::Odometry start);
 geometry_msgs::Point rotate2D(double rad, geometry_msgs::Point point);
