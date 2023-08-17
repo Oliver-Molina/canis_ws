@@ -293,27 +293,7 @@ Point GaitExecutor::recenter_point(Point point, int leg){
     }
     return newPoint;
 }
-Gait GaitExecutor::gait_lerp(Gait g1, Gait g2, double percent) {
-    #if DEBUG_GAIT_EXECUTOR
-    debug((std::string)__func__+" Executing...");
-    #endif
-    Gait out;
 
-    out.sr = point_lerp(g1.sr, g2.sr, percent);
-    out.sl = point_lerp(g1.sl, g2.sl, percent);
-    out.ir = point_lerp(g1.ir, g2.ir, percent);
-    out.il = point_lerp(g1.il, g2.il, percent);
-    out.com.position = point_lerp(g1.com.position, g2.com.position, percent);
-
-    tf2::Quaternion quat_tf1, quat_tf2;
-    tf2::convert(g1.com.orientation, quat_tf1);
-    tf2::convert(g2.com.orientation, quat_tf2);
-    out.com.orientation = tf2::toMsg(quat_tf1.tf2::Quaternion::slerp(quat_tf2, percent)); // = point_lerp(g1.com.position, g2.com.position, percent);
-    
-    out.foot = g1.foot;
-
-    return out;
-}
 Gait GaitExecutor::normalize_gait(Gait gait) {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
@@ -384,38 +364,6 @@ Gait GaitExecutor::normalize_gait(Gait gait) {
     out.com.orientation.w = 1;
 
     return out;
-}
-
-Gait GaitExecutor::gait_raise_foot(Gait gait) {
-    #if DEBUG_GAIT_EXECUTOR
-    debug((std::string)__func__+" Executing...");
-    #endif
-    switch (gait.foot.data) {
-        case 1: {
-            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
-            gait.sr.z += desired_z;
-            break; 
-        }
-        case 2: {
-            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
-            gait.sl.z += desired_z;
-            break; 
-        }
-        case 3: {
-            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
-            gait.ir.z += desired_z;
-            break; 
-        }
-        case 4: {
-            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
-            gait.il.z += desired_z;
-            break; 
-        }
-        default: {
-            break; 
-        }
-    }
-    return gait;
 }
 
 void GaitExecutor::print_gait(Gait gait) {

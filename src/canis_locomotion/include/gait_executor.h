@@ -88,11 +88,6 @@ class GaitExecutor {
         void Command_IL();
 
         /**
-         * Computes the desired elevation of the lifted foot
-         */
-        Gait gait_raise_foot(Gait gait);
-
-        /**
          * Command_Body
          * 
          *  Linearily interpolate and normalize the current gait position.

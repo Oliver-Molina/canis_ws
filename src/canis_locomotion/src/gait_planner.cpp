@@ -26,10 +26,6 @@
 
 
 // IO ########
-// Subs 
-
-
-// Pubs 
 
 
 GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
@@ -40,13 +36,11 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     crouch_sub = nh_.subscribe<std_msgs::Bool>("/crouch", 10, &GaitPlanner::crouch_CB, this);
     sit_sub = nh_.subscribe<std_msgs::Bool>("/sit", 10, &GaitPlanner::sit_CB, this);
     lay_down_sub = nh_.subscribe<std_msgs::Bool>("/layDown", 10, &GaitPlanner::lay_down_CB, this);
-    percent_sub = nh_.subscribe<std_msgs::Float64>("/odometry/percent", 1000, &GaitPlanner::Percent_CB, this);
 
     // Publishers
     gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/next", 1000);
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
     test_leg_position_pub = nh_.advertise<std_msgs::String>("/test_leg_position", 1000);
-    percent_pub = nh_.advertise<std_msgs::Float64>("/odometry/percent", 1000);
 
     // #### Robot Params ####
     nh_.param<double>("/shoulder_length", shoulder_length, 0.055);
@@ -61,36 +55,7 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     nh_.param<double>("/leg_x_offset", leg_x_offset, 0.00);
     nh_.param<double>("/leg_x_separation", leg_x_separation, 0.00);
 
-    // #### Robot Gait Variables ####
-    gait_current;
-    gait_command;
-    x_vel = 0;
-    theta_vel = 0;
-    delta_dist = 0;
-    delta_theta = 0;
-    margin = 1.0 - 0.0005;
-    on = false;
-    percent = 0;
-    mode = WalkMode::Halt;
-    path = {};
-    step_turn_rad = 2 * M_PI / 48;
-
-    // #### Testing ####
-    delta_angle = 0.05;
-    angle = 0.0;
-    radius = 0.05;
-    period = 2 * M_PI * radius / x_vel;
-    rot_freq = 1 / period;
-
-}
-
-void GaitPlanner::Init() {
-    gait_current = zeroGait();
-    gait_command = gait_current;
-    pose_current = zeroPose();
-    pose_command = pose_current;
-    gait_queue.push(zeroGait());
-    InitializeGaits();
+    Init();
 }
 
 Gait GaitPlanner::zeroGait() {
@@ -145,9 +110,6 @@ geometry_msgs::Pose GaitPlanner::zeroPose() {
 void GaitPlanner::InitializeGaits() {
     double half_width = body_width / 2 + shoulder_length;
     double eighth_len = (center_to_front + center_to_back) / 8;
-
-    
-    
 
     // SR Gait Forward
     sr_fwd.com.orientation.x = 0;
@@ -270,6 +232,15 @@ void GaitPlanner::InitializeGaits() {
     
 }
 
+void GaitPlanner::Init() {
+    current_gait = zeroGait();
+    next_gait = current_gait;
+    pose_current = zeroPose();
+    pose_command = pose_current;
+    gaits.push(zeroGait());
+    InitializeGaits();
+}
+
 void GaitPlanner::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) { 
 
     x_vel = twist->twist.linear.x;
@@ -277,23 +248,12 @@ void GaitPlanner::Vel_CB(const geometry_msgs::TwistStamped::ConstPtr& twist) {
 
 }
 
-void GaitPlanner::Path_CB(const PathQuat::ConstPtr& path) {
-    this->path = (*path).poses; 
-    std::queue<Gait> empty;
-    std::vector<Gait> gait_path = calculatePath();
-    for (Gait gait : gait_path) {
-        empty.push(gait);
-    }
-    std::swap(gait_queue, empty);
-    gait_pub.publish(gait_queue.front());
-    gait_queue.pop();
-}
-
 void GaitPlanner::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
     if(reset)
     {
         testing_leg_position = false;
         mode = still;
+        step = Halt;
         x_vel = 0;
         theta_vel = 0;
         delta_percent = 0;
@@ -301,9 +261,7 @@ void GaitPlanner::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
         delta_dist = 0;
         delta_theta = 0;
         angle = 0;
-
-        on = reset->data;
-        gait_pub.publish(gait_command);
+        gait_pub.publish(next_gait);
     }
 }
 
@@ -312,38 +270,33 @@ void GaitPlanner::Frame_CB(const ros::TimerEvent& event) {
     debug((std::string)__func__+" Executing...");
     #endif
     debug(std::to_string(delta_percent));
+
+    // Increment percent step according to velocity & operating frequency
     percent_step += delta_percent;
-    percent_msg.data = percent_step;              
-    percent_pub.publish(percent_msg);
-    
-    if (percent_step >= 1) { 
+    if (percent_step >= margin) { 
         percent_step = 0;
-        gait_current = gait_next;
-        previous_gait = gaits.front();
+        previous_gait = next_gait;
+        next_gait = gaits.front();
         gaits.pop();
         gaits.push(previous_gait);
     }
-    Gait gait_linterped;
-    Gait output;
+
     switch(mode){
         case still:         // Retain current position
-            gait_normalized = normalize_gait(gait_current);
-            set_leg_positions(gait_normalized);
+            current_gait = zeroGait();
             break;
         case walking:       // Cycle four gaits
-            gait_linterped = gait_lerp(gait_current, gait_next, percent_step);
-            output = gait_raise_foot(gait_linterped);
-            gait_normalized = normalize_gait(output);
-            set_leg_positions(gait_normalized);
+            current_gait = gait_lerp(previous_gait, next_gait, percent_step);
+            current_gait = gait_raise_foot(current_gait);
             break;
         case crouching:     // Cycle two gaits
-            current_gait = gait_lerp(previous_gait, gaits.front(),percent_step);
+            current_gait = gait_lerp(previous_gait, next_gait, percent_step);
             break;
         case sitting:      // Lower back legs and cycle that position
-            current_gait = gait_lerp(previous_gait, gaits.front(),percent_step);
+            current_gait = gait_lerp(previous_gait, next_gait, percent_step);
             break;
         case laying_down:   // Don't command the motors
-            current_gait = gait_lerp(previous_gait, gaits.front(),percent_step);
+            current_gait = gait_lerp(previous_gait, next_gait, percent_step);
             break;
         case recovering:    // Do something with imu/stability data
             break;
@@ -352,14 +305,8 @@ void GaitPlanner::Frame_CB(const ros::TimerEvent& event) {
         default:
             break;
     }
-}
 
-void GaitPlanner::Percent_CB(const std_msgs::Float64::ConstPtr& percent_msg) {
-    percent = percent_msg->data;
-    if (percent > margin && !gait_queue.empty()) {
-        gait_pub.publish(gait_queue.front());
-        gait_queue.pop();
-    }
+    gait_pub.publish(current_gait);
 }
 
 void GaitPlanner::crouch_CB(const std_msgs::Bool::ConstPtr &crouch){
@@ -467,56 +414,58 @@ void GaitPlanner::lay_down_CB(const std_msgs::Bool::ConstPtr &lay_down){
     gaits.push(lay_down_gait);
 }
 
-std::vector<Gait> GaitPlanner::calculatePath() {
-    std::vector<Gait> gait_path;
-    for (int path_index = 1; path_index < path.size(); path_index++) {
-        std::vector<Gait> temp = pathCommand(path[path_index], path[path_index - 1]);
-        gait_path.insert(gait_path.end(), temp.begin(), temp.end());
-    }
+Gait gait_lerp(Gait g1, Gait g2, double percent) {
+    #if DEBUG_GAIT_EXECUTOR
+    debug((std::string)__func__+" Executing...");
+    #endif
+    Gait out;
+
+    out.sr = point_lerp(g1.sr, g2.sr, percent);
+    out.sl = point_lerp(g1.sl, g2.sl, percent);
+    out.ir = point_lerp(g1.ir, g2.ir, percent);
+    out.il = point_lerp(g1.il, g2.il, percent);
+    out.com.position = point_lerp(g1.com.position, g2.com.position, percent);
+
+    tf2::Quaternion quat_tf1, quat_tf2;
+    tf2::convert(g1.com.orientation, quat_tf1);
+    tf2::convert(g2.com.orientation, quat_tf2);
+    out.com.orientation = tf2::toMsg(quat_tf1.tf2::Quaternion::slerp(quat_tf2, percent)); // = point_lerp(g1.com.position, g2.com.position, percent);
     
-    return gait_path;
+    out.foot = g1.foot;
+
+    return out;
 }
 
-std::vector<Gait> GaitPlanner::pathCommand(nav_msgs::Odometry end, nav_msgs::Odometry start) {
-    auto translated_end = translate(end, start);
-    auto dist = translated_end.pose.pose.position.x;
-    auto rad = translated_end.twist.twist.angular.z;
-    if (dist == 0 && rad != 0) {
-        return turn(rad);
+Gait GaitPlanner::gait_raise_foot(Gait gait) {
+    #if DEBUG_GAIT_EXECUTOR
+    debug((std::string)__func__+" Executing...");
+    #endif
+    switch (gait.foot.data) {
+        case 1: {
+            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
+            gait.sr.z += desired_z;
+            break; 
+        }
+        case 2: {
+            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
+            gait.sl.z += desired_z;
+            break; 
+        }
+        case 3: {
+            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
+            gait.ir.z += desired_z;
+            break; 
+        }
+        case 4: {
+            double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
+            gait.il.z += desired_z;
+            break; 
+        }
+        default: {
+            break; 
+        }
     }
-    else if (dist != 0 && rad == 0) {
-        return walk(dist);
-    }
-    std::vector<Gait> empty_vec;
-    return empty_vec;
-}
-
-nav_msgs::Odometry translate(nav_msgs::Odometry end, nav_msgs::Odometry start) {
-    nav_msgs::Odometry translate_end = end;
-
-    double x = translate_end.pose.pose.position.x - start.pose.pose.position.x;
-    double y = translate_end.pose.pose.position.y - start.pose.pose.position.y;
-    double z = translate_end.pose.pose.position.z - start.pose.pose.position.z;
-
-    tf2::Quaternion quat_i, quat_o;
-    tf2::convert(start.pose.pose.orientation, quat_i);
-    tf2::convert(end.pose.pose.orientation, quat_o);
-
-
-    tf2::Matrix3x3 m_i;
-    m_i.setRotation(quat_i); 
-    tf2::Vector3 out_pos_vec(x, y, z);
-    out_pos_vec = m_i.inverse() * out_pos_vec;
-    quat_o *= quat_i.inverse();
-
-    translate_end.pose.pose.position.x = out_pos_vec.x();
-    translate_end.pose.pose.position.y = out_pos_vec.y();
-    translate_end.pose.pose.position.z = out_pos_vec.z();
-
-    //translate_end.pose.pose.orientation = tf::createQuaternionFromMsg(quat_o);
-    tf2::convert(quat_o, translate_end.pose.pose.orientation);
-    return translate_end;
-
+    return gait;
 }
 
 std::vector<Gait> GaitPlanner::walk(double dist) {
@@ -525,42 +474,39 @@ std::vector<Gait> GaitPlanner::walk(double dist) {
     int steps_taken = 0;
     
     while (steps_taken < steps_to_take) {
-        switch(mode) {
+        switch(step) {
             case WalkMode::Halt: {
                 gait_vector.push_back(il_fwd);
-                mode = WalkMode::SR; //Next Step
+                step = WalkMode::SR; //Next Step
             }
             break;
 
             case WalkMode::SR: {
                 gait_vector.push_back(sr_fwd);
-                mode = WalkMode::IL;
+                step = WalkMode::IL;
             }
             break;
 
             case WalkMode::SL: {
                 gait_vector.push_back(sl_fwd);
-                mode = WalkMode::IR;
+                step = WalkMode::IR;
             }
             break;
 
             case WalkMode::IR: {
                 gait_vector.push_back(ir_fwd);
-                mode = WalkMode::SR;
+                step = WalkMode::SR;
             }
             break;
 
             case WalkMode::IL: {
                 gait_vector.push_back(il_fwd);
-                mode = WalkMode::SL;
+                step = WalkMode::SL;
             }
             break;
 
-            default: {
-
-
-    
-            }
+            default:
+            break;
         }
         steps_taken++;
     }
@@ -573,34 +519,34 @@ std::vector<Gait> GaitPlanner::turn(double rad) {
     int steps_taken = 0;
     if (rad >= 0) {
         while (steps_taken < steps_to_take) {
-            switch(mode) {
+            switch(step) {
                 case WalkMode::Halt: {
                     gait_vector.push_back(il_turn);
-                    mode = WalkMode::IL;
+                    step = WalkMode::IL;
                 }
                 break;
 
                 case WalkMode::SR: {
                     gait_vector.push_back(sr_turn);
-                    mode = WalkMode::SL;
+                    step = WalkMode::SL;
                 }
                 break;
 
                 case WalkMode::SL: {
                     gait_vector.push_back(sl_turn);
-                    mode = WalkMode::IR;
+                    step = WalkMode::IR;
                 }
                 break;
 
                 case WalkMode::IR: {
                     gait_vector.push_back(ir_turn);
-                    mode = WalkMode::IL;
+                    step = WalkMode::IL;
                 }
                 break;
 
                 case WalkMode::IL: {
                     gait_vector.push_back(il_turn);
-                    mode = WalkMode::SR;
+                    step = WalkMode::SR;
                 }
                 break;
 
@@ -615,34 +561,34 @@ std::vector<Gait> GaitPlanner::turn(double rad) {
     }
     else {
         while (steps_taken < steps_to_take) {
-            switch(mode) {
+            switch(step) {
                 case WalkMode::Halt: {
                     gait_vector.push_back(il_turn);
-                    mode = WalkMode::IL;
+                    step = WalkMode::IL;
                 }
                 break;
 
                 case WalkMode::SR: {
                     gait_vector.push_back(sr_turn);
-                    mode = WalkMode::IL;
+                    step = WalkMode::IL;
                 }
                 break;
 
                 case WalkMode::SL: {
                     gait_vector.push_back(sl_turn);
-                    mode = WalkMode::SR;
+                    step = WalkMode::SR;
                 }
                 break;
 
                 case WalkMode::IR: {
                     gait_vector.push_back(ir_turn);
-                    mode = WalkMode::SL;
+                    step = WalkMode::SL;
                 }
                 break;
 
                 case WalkMode::IL: {
                     gait_vector.push_back(il_turn);
-                    mode = WalkMode::IR;
+                    step = WalkMode::IR;
                 }
                 break;
 
