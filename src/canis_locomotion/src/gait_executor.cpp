@@ -28,8 +28,8 @@
 
 GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     
-    gait_sub = nh_.subscribe<robot_core::Gait>("/command/gait/next", 1000, &GaitExecutor::Gait_CB, this);
-    manual_position_sub = nh_.subscribe<std_msgs::String>("/manual_position", 10, &GaitExecutor::manual_position_CB, this);
+    raw_gait_sub = nh_.subscribe<robot_core::Gait>("/command/gait/raw", 1000, &GaitExecutor::Raw_Gait_CB, this);
+    normalized_gait_sub = nh_.subscribe<robot_core::Gait>("/command/gait/processed", 1000, &GaitExecutor::Processed_Gait_CB, this);
 
     sr_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/leg/pos/superior/right", 1000);
     sl_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/leg/pos/superior/left", 1000);
@@ -44,52 +44,36 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     nh_.param<double>("/body_width", body_width, 0.038);
     nh_.param<double>("/center_to_front", center_to_front, 0.1);
     nh_.param<double>("/center_to_back", center_to_back, 0.1);
+    nh_.param<double>("/frequency", operating_freq, 30);
     nh_.param<double>("/walking_height", walking_z, 0.15);
     nh_.param<double>("/step_height", step_height, 0.05);
-    nh_.param<double>("/frequency", operating_freq, 30);
-
-
-    // #### Robot Gait Variables ####
-    gait_current;
-    gait_next;
-    gait_normalized;
-    percent_step = 0;
-    x_vel = 0;
-    theta_vel = 0;
-    delta_percent = 0;
-
-    // #### Testing ####
-    percent_dist = 0;
-    percent_theta = 0;
-
+    nh_.param<double>("/leg_x_offset", leg_x_offset, 0.00);
+    nh_.param<double>("/leg_x_separation", leg_x_separation, 0.00);
 }
 
-void GaitExecutor::Gait_CB(const robot_core::Gait::ConstPtr& gait) { 
+void GaitExecutor::Raw_Gait_CB(const robot_core::Gait::ConstPtr& gait) { 
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
-    testing_leg_position = false;
-    gait_next = *gait;
-    double delta_dist = 0;
-    if (gait_current.foot.data != 1) {
-        delta_dist = sqrt((gait_next.sr.x-gait_current.sr.x)*(gait_next.sr.x-gait_current.sr.x)+
-                        (gait_next.sr.y-gait_current.sr.y)*(gait_next.sr.y-gait_current.sr.y)+
-                        (gait_next.sr.z-gait_current.sr.z)*(gait_next.sr.z-gait_current.sr.z));
-    }
-    else {
-        delta_dist = sqrt((gait_next.sl.x-gait_current.sl.x)*(gait_next.sl.x-gait_current.sl.x)+
-                        (gait_next.sl.y-gait_current.sl.y)*(gait_next.sl.y-gait_current.sl.y)+
-                        (gait_next.sl.z-gait_current.sl.z)*(gait_next.sl.z-gait_current.sl.z));
-    }
-    tf2::Quaternion quat_tf1, quat_tf2;
-    tf2::convert(gait_current.com.orientation, quat_tf1);
-    tf2::convert(gait_next.com.orientation, quat_tf2);
+    gait_out = *gait;
+    normalize_gait();
+    recenter_leg_positions();
+    Command_Body();
+}
 
-    double delta_theta = (quat_tf1 * quat_tf2.inverse()).getAngleShortestPath();
-    percent_dist = (delta_dist == 0) ? 0 : x_vel / (delta_dist * operating_freq);
-    percent_theta = (delta_theta == 0) ? 0 : theta_vel / (delta_theta * operating_freq);
+void GaitExecutor::Processed_Gait_CB(const robot_core::Gait::ConstPtr& gait){
+    #if DEBUG_GAIT_EXECUTOR
+    debug((std::string)__func__+" Executing...");
+    #endif
+    gait_out = *gait;
+    Command_Body();
+}
 
-    delta_percent = std::max(percent_theta, percent_dist);
+void GaitExecutor::Command_Body() {
+    GaitExecutor::Command_IR();
+    GaitExecutor::Command_IL();
+    GaitExecutor::Command_SR();
+    GaitExecutor::Command_SL();
 }
 
 void GaitExecutor::Command_SR() {
@@ -97,7 +81,7 @@ void GaitExecutor::Command_SR() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    sr_msg.point = gait_next.sr;
+    sr_msg.point = gait_out.sr;
 
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
@@ -115,7 +99,7 @@ void GaitExecutor::Command_SL() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    sl_msg.point = gait_next.sl;
+    sl_msg.point = gait_out.sl;
 
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
@@ -134,7 +118,7 @@ void GaitExecutor::Command_IR() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    ir_msg.point = gait_next.ir;
+    ir_msg.point = gait_out.ir;
 
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
@@ -153,7 +137,7 @@ void GaitExecutor::Command_IL() {
     debug((std::string)__func__+" Executing...");
     #endif
 
-    il_msg.point = gait_next.il;
+    il_msg.point = gait_out.il;
 
     #if DEBUG_LEG_POSITIONS
     std::vector<double> values_vec;
@@ -165,63 +149,6 @@ void GaitExecutor::Command_IL() {
     il_msg.header.stamp = ros::Time::now();
     il_pub.publish(il_msg);
     
-}
-
-void GaitExecutor::Init() {
-    #if DEBUG_GAIT_EXECUTOR
-    debug((std::string)__func__+" Executing...");
-    #endif
-    
-    default_gait.sr.x = center_to_front;
-    default_gait.sr.y = -body_width / 2.0 - shoulder_length;
-    default_gait.sr.z = 0;
-
-    default_gait.sl.x = center_to_front;
-    default_gait.sl.y = body_width / 2.0 + shoulder_length;
-    default_gait.sl.z = 0;
-
-    default_gait.ir.x = -center_to_back - 0.05;
-    default_gait.ir.y = -body_width / 2.0 - shoulder_length;
-    default_gait.ir.z = 0;
-
-    default_gait.il.x = -center_to_back - 0.05;
-    default_gait.il.y = body_width / 2.0 + shoulder_length;
-    default_gait.il.z = 0;
-
-    default_gait.com.position.x = 0;
-    default_gait.com.position.y = 0;
-    default_gait.com.position.z = walking_z;
-
-    default_gait.com.orientation.x = 0;
-    default_gait.com.orientation.y = 0;
-    default_gait.com.orientation.z = 0;
-    default_gait.com.orientation.w = 1;
-    gait_current = default_gait;
-
-    gait_normalized = normalize_gait(gait_current);
-    gait_next = gait_current;
-    previous_gait = gait_current;
-    gaits.push(gait_next);
-    percent_step = 0;
-
-    GaitExecutor::Command_Body();
-    
-}
-
-void GaitExecutor::set_leg_positions(Gait gait) {
-    gait_next.sr = recenter_point(gait.sr, superior_right);
-    gait_next.sl = recenter_point(gait.sl, superior_left);
-    gait_next.ir = recenter_point(gait.ir, inferior_right);
-    gait_next.il = recenter_point(gait.il, inferior_left);
-}
-
-void GaitExecutor::Command_Body() {
-    gait_normalized = normalize_gait(gait_next);
-    set_leg_positions(gait_normalized);
-    GaitExecutor::Command_IR();
-    GaitExecutor::Command_IL();
-    GaitExecutor::Command_SR();
-    GaitExecutor::Command_SL();
 }
 
 void GaitExecutor::debug(std::vector<double> values, std::string message) {
@@ -294,45 +221,51 @@ Point GaitExecutor::recenter_point(Point point, int leg){
     return newPoint;
 }
 
-Gait GaitExecutor::normalize_gait(Gait gait) {
+void GaitExecutor::recenter_leg_positions() {
+    gait_out.sr = recenter_point(gait_out.sr, superior_right);
+    gait_out.sl = recenter_point(gait_out.sl, superior_left);
+    gait_out.ir = recenter_point(gait_out.ir, inferior_right);
+    gait_out.il = recenter_point(gait_out.il, inferior_left);
+}
+
+void GaitExecutor::normalize_gait() {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
-    Gait out = gait;
 
     // Shift to origin first
-    out.sr.x -= gait.com.position.x;
-    out.sr.y -= gait.com.position.y;
-    out.sr.z -= gait.com.position.z;
+    gait_out.sr.x -= gait_out.com.position.x;
+    gait_out.sr.y -= gait_out.com.position.y;
+    gait_out.sr.z -= gait_out.com.position.z;
 
-    out.sl.x -= gait.com.position.x;
-    out.sl.y -= gait.com.position.y;
-    out.sl.z -= gait.com.position.z;
+    gait_out.sl.x -= gait_out.com.position.x;
+    gait_out.sl.y -= gait_out.com.position.y;
+    gait_out.sl.z -= gait_out.com.position.z;
 
-    out.ir.x -= gait.com.position.x;
-    out.ir.y -= gait.com.position.y;
-    out.ir.z -= gait.com.position.z;
+    gait_out.ir.x -= gait_out.com.position.x;
+    gait_out.ir.y -= gait_out.com.position.y;
+    gait_out.ir.z -= gait_out.com.position.z;
 
-    out.il.x -= gait.com.position.x;
-    out.il.y -= gait.com.position.y;
-    out.il.z -= gait.com.position.z;
+    gait_out.il.x -= gait_out.com.position.x;
+    gait_out.il.y -= gait_out.com.position.y;
+    gait_out.il.z -= gait_out.com.position.z;
 
-    out.com.position.x = 0;
-    out.com.position.y = 0;
-    out.com.position.z = 0;
+    gait_out.com.position.x = 0;
+    gait_out.com.position.y = 0;
+    gait_out.com.position.z = 0;
 
     // Rotate Each Foot  
     tf::Quaternion q(
-        gait.com.orientation.x,
-        gait.com.orientation.y,
-        gait.com.orientation.z,
-        gait.com.orientation.w);
+        gait_out.com.orientation.x,
+        gait_out.com.orientation.y,
+        gait_out.com.orientation.z,
+        gait_out.com.orientation.w);
     tf::Matrix3x3 m(q);
 
-    tf::Vector3 sr_vec(out.sr.x, out.sr.y, out.sr.z);
-    tf::Vector3 sl_vec(out.sl.x, out.sl.y, out.sl.z);
-    tf::Vector3 ir_vec(out.ir.x, out.ir.y, out.ir.z);
-    tf::Vector3 il_vec(out.il.x, out.il.y, out.il.z);
+    tf::Vector3 sr_vec(gait_out.sr.x, gait_out.sr.y, gait_out.sr.z);
+    tf::Vector3 sl_vec(gait_out.sl.x, gait_out.sl.y, gait_out.sl.z);
+    tf::Vector3 ir_vec(gait_out.ir.x, gait_out.ir.y, gait_out.ir.z);
+    tf::Vector3 il_vec(gait_out.il.x, gait_out.il.y, gait_out.il.z);
 
     
     tf::Vector3 sr_norm, sl_norm, ir_norm, il_norm;
@@ -342,28 +275,26 @@ Gait GaitExecutor::normalize_gait(Gait gait) {
     ir_norm = m.inverse()*ir_vec;
     il_norm = m.inverse()*il_vec;
 
-    out.sr.x = sr_norm.getX();
-    out.sr.y = sr_norm.getY();
-    out.sr.z = sr_norm.getZ();
+    gait_out.sr.x = sr_norm.getX();
+    gait_out.sr.y = sr_norm.getY();
+    gait_out.sr.z = sr_norm.getZ();
 
-    out.sl.x = sl_norm.getX();
-    out.sl.y = sl_norm.getY();
-    out.sl.z = sl_norm.getZ();
+    gait_out.sl.x = sl_norm.getX();
+    gait_out.sl.y = sl_norm.getY();
+    gait_out.sl.z = sl_norm.getZ();
 
-    out.ir.x = ir_norm.getX();
-    out.ir.y = ir_norm.getY();
-    out.ir.z = ir_norm.getZ();
+    gait_out.ir.x = ir_norm.getX();
+    gait_out.ir.y = ir_norm.getY();
+    gait_out.ir.z = ir_norm.getZ();
 
-    out.il.x = il_norm.getX();
-    out.il.y = il_norm.getY();
-    out.il.z = il_norm.getZ();
+    gait_out.il.x = il_norm.getX();
+    gait_out.il.y = il_norm.getY();
+    gait_out.il.z = il_norm.getZ();
 
-    out.com.orientation.x = 0;
-    out.com.orientation.y = 0;
-    out.com.orientation.z = 0;
-    out.com.orientation.w = 1;
-
-    return out;
+    gait_out.com.orientation.x = 0;
+    gait_out.com.orientation.y = 0;
+    gait_out.com.orientation.z = 0;
+    gait_out.com.orientation.w = 1;
 }
 
 void GaitExecutor::print_gait(Gait gait) {
@@ -398,45 +329,6 @@ void GaitExecutor::print_gait(Gait gait) {
 
 }
 
-void GaitExecutor::manual_position_CB(const std_msgs::String::ConstPtr& test_leg_position_msg){
-    testing_leg_position = true;
-    std::string data = test_leg_position_msg->data;
-    std::regex rgx("^([0-3]) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+)"); // fix the regex maybe.
-    std::smatch base_match;
-    if(!std::regex_match(data,base_match,rgx)){
-        debug("Failed to match String.");
-        return;
-    }
-    Point point;
-    int leg  = std::stoi(base_match[1].str());
-    point.x = std::stod(base_match[2].str());
-    point.y = std::stod(base_match[3].str());
-    point.z = std::stod(base_match[4].str());
-    std::stringstream stream;
-    stream<<"Setting Leg "<<base_match[1]<<" to position X: "<<base_match[2]<<" Y: "<<base_match[3]<<" Z: "<<base_match[4];
-    debug(stream.str());
-    switch(leg){
-        case superior_right:
-            gait_next.sr = point;
-            Command_SR();
-            break;
-        case superior_left:
-            gait_next.sl = point;
-            Command_SL();
-            break;
-        case inferior_right:
-            gait_next.ir = point;
-            Command_IR();
-            break;
-        case inferior_left:
-            gait_next.il = point;
-            Command_IL();
-            break;
-        default:
-            break;
-
-    }
-}
 /*
 Default Leg Positions
 

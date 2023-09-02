@@ -36,6 +36,8 @@ enum WalkMode {Halt, SR, SL, IR, IL};
 class GaitPlanner {
     public:
 
+        double operating_freq; // TBD, more testing
+
         GaitPlanner(const ros::NodeHandle &nh_private_);
 
         ~GaitPlanner() = default;
@@ -47,6 +49,7 @@ class GaitPlanner {
         void crouch_CB(const std_msgs::Bool::ConstPtr &crouch);
         void sit_CB(const std_msgs::Bool::ConstPtr &sit);
         void lay_down_CB(const std_msgs::Bool::ConstPtr &lay_down);
+        void manual_position_CB(const std_msgs::String::ConstPtr &leg_position);
 
         /**
          * Frame_CB (Frame Callback)
@@ -71,10 +74,6 @@ class GaitPlanner {
          */
         Gait gait_raise_foot(Gait gait);
 
-        // Public Variables
-
-        double operating_freq;
-
         // Debugging
 
         void debug(std::vector<double> values, std::string message);
@@ -95,7 +94,6 @@ class GaitPlanner {
         double body_width;
         double center_to_front;
         double center_to_back;
-        double operating_freq; // TBD, more testing
         double walking_z;
         double step_height;
         double leg_x_offset;
@@ -103,7 +101,8 @@ class GaitPlanner {
 
         // Publishers, subscribers & messages
 
-        ros::Publisher gait_pub;
+        ros::Publisher raw_gait_pub;
+        ros::Publisher processed_gait_pub;
         ros::Publisher debug_pub;
         ros::Publisher test_leg_position_pub;
 
@@ -112,6 +111,8 @@ class GaitPlanner {
         ros::Subscriber crouch_sub;
         ros::Subscriber sit_sub;
         ros::Subscriber lay_down_sub;
+        ros::Subscriber manual_position_sub;
+
     
         std_msgs::String debug_msg;
         std_msgs::String test_leg_position_msg;
@@ -163,7 +164,7 @@ class GaitPlanner {
         double percent_theta;
 
 };
-
+Gait gait_lerp(Gait g1, Gait g2, double percent);
 double double_lerp(double x1, double x2, double percent);
 Point point_lerp(Point p1, Point p2, double percent);
 geometry_msgs::Point rotate2D(double rad, geometry_msgs::Point point);

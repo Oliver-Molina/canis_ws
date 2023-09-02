@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
+#include <regex>
 
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
@@ -27,6 +28,10 @@
 
 // IO ########
 
+#define superior_right 0
+#define superior_left 1
+#define inferior_right 2
+#define inferior_left 3
 
 GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     
@@ -38,7 +43,8 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     lay_down_sub = nh_.subscribe<std_msgs::Bool>("/layDown", 10, &GaitPlanner::lay_down_CB, this);
 
     // Publishers
-    gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/next", 1000);
+    raw_gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/raw", 1000);
+    processed_gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/processed", 1000);
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
     test_leg_position_pub = nh_.advertise<std_msgs::String>("/test_leg_position", 1000);
 
@@ -261,7 +267,7 @@ void GaitPlanner::Reset_CB(const std_msgs::Bool::ConstPtr& reset) {
         delta_dist = 0;
         delta_theta = 0;
         angle = 0;
-        gait_pub.publish(next_gait);
+        raw_gait_pub.publish(next_gait);
     }
 }
 
@@ -301,12 +307,13 @@ void GaitPlanner::Frame_CB(const ros::TimerEvent& event) {
         case recovering:    // Do something with imu/stability data
             break;
         case manual:        // Manual leg control only update off of current leg positions
-            break;
+            processed_gait_pub.publish(current_gait);
+            return;
         default:
             break;
     }
 
-    gait_pub.publish(current_gait);
+    raw_gait_pub.publish(current_gait);
 }
 
 void GaitPlanner::crouch_CB(const std_msgs::Bool::ConstPtr &crouch){
@@ -414,27 +421,49 @@ void GaitPlanner::lay_down_CB(const std_msgs::Bool::ConstPtr &lay_down){
     gaits.push(lay_down_gait);
 }
 
-Gait gait_lerp(Gait g1, Gait g2, double percent) {
+void GaitPlanner::manual_position_CB(const std_msgs::String::ConstPtr& test_leg_position_msg){
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
-    Gait out;
+    mode = manual;
+    delta_percent = 0;
+    percent_step = 0;
+    std::string data = test_leg_position_msg->data;
+    std::regex rgx("^([0-3]) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+)"); // fix the regex maybe.
+    std::smatch base_match;
+    if(!std::regex_match(data,base_match,rgx)){
+        debug("Failed to match String.");
+        return;
+    }
+    Point point;
+    int leg  = std::stoi(base_match[1].str());
+    point.x = std::stod(base_match[2].str());
+    point.y = std::stod(base_match[3].str());
+    point.z = std::stod(base_match[4].str());
+    std::stringstream stream;
+    stream<<"Setting Leg "<<base_match[1]<<" to position X: "<<base_match[2]<<" Y: "<<base_match[3]<<" Z: "<<base_match[4];
+    debug(stream.str());
+    while(!gaits.empty()) gaits.pop();
+    switch(leg){
+        case superior_right:
+            current_gait.sr = point;
+            break;
+        case superior_left:
+            current_gait.sl = point;
+            break;
+        case inferior_right:
+            current_gait.ir = point;
+            break;
+        case inferior_left:
+            current_gait.il = point;
+            break;
+        default:
+            break;
 
-    out.sr = point_lerp(g1.sr, g2.sr, percent);
-    out.sl = point_lerp(g1.sl, g2.sl, percent);
-    out.ir = point_lerp(g1.ir, g2.ir, percent);
-    out.il = point_lerp(g1.il, g2.il, percent);
-    out.com.position = point_lerp(g1.com.position, g2.com.position, percent);
-
-    tf2::Quaternion quat_tf1, quat_tf2;
-    tf2::convert(g1.com.orientation, quat_tf1);
-    tf2::convert(g2.com.orientation, quat_tf2);
-    out.com.orientation = tf2::toMsg(quat_tf1.tf2::Quaternion::slerp(quat_tf2, percent)); // = point_lerp(g1.com.position, g2.com.position, percent);
-    
-    out.foot = g1.foot;
-
-    return out;
+    }
+    gaits.push(current_gait);
 }
+
 
 Gait GaitPlanner::gait_raise_foot(Gait gait) {
     #if DEBUG_GAIT_EXECUTOR
@@ -680,4 +709,41 @@ void GaitPlanner::print_gait(Gait gait) {
 
     debug(values_vec, "COM: x: |, y: |, z: |\nSR: x: |, y: |, z: |\nSL x: |, y: |, z: |\nIR: x: |, y: |, z: | \nIL: x: |, y: |, z: | ");
 
+}
+
+
+Gait gait_lerp(Gait g1, Gait g2, double percent) {
+    #if DEBUG_GAIT_EXECUTOR
+    debug((std::string)__func__+" Executing...");
+    #endif
+    Gait out;
+
+    out.sr = point_lerp(g1.sr, g2.sr, percent);
+    out.sl = point_lerp(g1.sl, g2.sl, percent);
+    out.ir = point_lerp(g1.ir, g2.ir, percent);
+    out.il = point_lerp(g1.il, g2.il, percent);
+    out.com.position = point_lerp(g1.com.position, g2.com.position, percent);
+
+    tf2::Quaternion quat_tf1, quat_tf2;
+    tf2::convert(g1.com.orientation, quat_tf1);
+    tf2::convert(g2.com.orientation, quat_tf2);
+    out.com.orientation = tf2::toMsg(quat_tf1.tf2::Quaternion::slerp(quat_tf2, percent)); // = point_lerp(g1.com.position, g2.com.position, percent);
+    
+    out.foot = g1.foot;
+
+    return out;
+}
+
+double double_lerp(double x1, double x2, double percent) {
+    return x1 + (x2 - x1) * percent;
+}
+
+Point point_lerp(Point p1, Point p2, double percent) {
+    Point out;
+
+    out.x = double_lerp(p1.x, p2.x, percent);
+    out.y = double_lerp(p1.y, p2.y, percent);
+    out.z = double_lerp(p1.z, p2.z, percent);
+
+    return out;
 }

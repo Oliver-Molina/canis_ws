@@ -8,7 +8,6 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh_private("~");
 
     GaitExecutor ge = GaitExecutor(nh_private);
-    ge.Init();    
     ros::spin();
     return 0;
 }

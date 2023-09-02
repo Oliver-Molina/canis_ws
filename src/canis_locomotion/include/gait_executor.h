@@ -31,17 +31,23 @@ class GaitExecutor {
         // Destructor
         ~GaitExecutor() = default;
 
-        // Callback methods
-        void manual_position_CB(const std_msgs::String::ConstPtr &leg_position);
-
         /**
-         * Gait_CB (Gait Callback)
+         * Raw_Gait_CB (Gait Callback)
          *
          * Calculates delta_percent based off of the current gait and input gait to maintain th current velocity
          *
          * @param gait Input gait to be compared against the current gait
          */
-        void Gait_CB(const robot_core::Gait::ConstPtr& gait);
+        void Raw_Gait_CB(const robot_core::Gait::ConstPtr& gait);
+
+        /**
+         * Processed_Gait_CB (Gait Callback)
+         *
+         * Calculates delta_percent based off of the current gait and input gait to maintain th current velocity
+         *
+         * @param gait Input gait to be compared against the current gait
+         */
+        void Processed_Gait_CB(const robot_core::Gait::ConstPtr& gait);
 
         /**
          * Takes a point centered on the body's origin and recenters it on the origin of a given leg.
@@ -57,7 +63,7 @@ class GaitExecutor {
          * Updates the internaly stored leg locations.
          * 
         */
-        void set_leg_positions(Gait gait);
+        void recenter_leg_positions();
 
         /**
          * Command_SR (Command Superior Ritgh Leg)
@@ -94,13 +100,7 @@ class GaitExecutor {
         */
         void Command_Body();
 
-        /**
-         * Init
-         * 
-         * Sets the robot to its default idle standing position.
-        */
-        void Init();
-        Gait normalize_gait(Gait gait);
+        void normalize_gait();
 
         // Debugging
         void debug(std::vector<double> values, std::string message);
@@ -108,47 +108,42 @@ class GaitExecutor {
         void print_gait(Gait gait);
 
     private:
-        /**
-         * Node handlers
-         */
+        // Node Handlers
         ros::NodeHandle nh_;
         ros::NodeHandle nh_private_;
 
-        /*
-         * Robot Params (Can be passed as params)
-         */
+        // Robot Params (Can be passed as params)
 
         double shoulder_length;
         double arm_length;
         double forearm_length;
-        double max_extend;
-        double max_tangential;
         double body_width;
         double center_to_front;
         double center_to_back;
+        double operating_freq; // TBD, more testing
+        double walking_z;
+        double step_height;
+        double leg_x_offset;
+        double leg_x_separation;
 
-        // Publishers and subscribers
+        // Publishers, subscribers & messages
+
         ros::Publisher sr_pub;
         ros::Publisher sl_pub;
         ros::Publisher ir_pub;
         ros::Publisher il_pub;
         ros::Publisher debug_pub;
 
-        ros::Subscriber gait_sub;
-        ros::Subscriber manual_position_sub;
-
-        // Messages
+        ros::Subscriber raw_gait_sub;
+        ros::Subscriber normalized_gait_sub;
 
         geometry_msgs::PointStamped sr_msg;
         geometry_msgs::PointStamped sl_msg;
         geometry_msgs::PointStamped ir_msg;
         geometry_msgs::PointStamped il_msg;
         std_msgs::String debug_msg;
-        std_msgs::String leg_position_msg;
-    
-        // Gait Variables
-        Gait gait_current;
-        Gait gait_next;
+
+        Gait gait_out;
 };
 
 /**
