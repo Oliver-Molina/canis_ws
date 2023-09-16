@@ -49,6 +49,7 @@ class GaitPlanner {
         void crouch_CB(const std_msgs::Bool::ConstPtr &crouch);
         void sit_CB(const std_msgs::Bool::ConstPtr &sit);
         void lay_down_CB(const std_msgs::Bool::ConstPtr &lay_down);
+        void walk_CB(const std_msgs::Bool::ConstPtr &walk);
         void manual_position_CB(const std_msgs::String::ConstPtr &leg_position);
 
         /**
@@ -64,7 +65,6 @@ class GaitPlanner {
 
         void Init();
         std::vector<Gait> turn(double turn_rad);
-        std::vector<Gait> walk(double dist);
         geometry_msgs::Pose zeroPose();
         Gait zeroGait();
         void InitializeGaits(); 
@@ -111,6 +111,7 @@ class GaitPlanner {
         ros::Subscriber crouch_sub;
         ros::Subscriber sit_sub;
         ros::Subscriber lay_down_sub;
+        ros::Subscriber walk_sub;
         ros::Subscriber manual_position_sub;
 
     

@@ -41,6 +41,7 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     crouch_sub = nh_.subscribe<std_msgs::Bool>("/crouch", 10, &GaitPlanner::crouch_CB, this);
     sit_sub = nh_.subscribe<std_msgs::Bool>("/sit", 10, &GaitPlanner::sit_CB, this);
     lay_down_sub = nh_.subscribe<std_msgs::Bool>("/layDown", 10, &GaitPlanner::lay_down_CB, this);
+    walk_sub = nh_.subscribe<std_msgs::Bool>("/walk", 10, &GaitPlanner::walk_CB, this);
 
     // Publishers
     raw_gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/raw", 1000);
@@ -137,7 +138,7 @@ void GaitPlanner::InitializeGaits() {
     sr_fwd.il.x = -3 * eighth_len+leg_x_separation+leg_x_offset;
     sr_fwd.il.y = half_width;
     sr_fwd.il.z = 0;
-    sr_fwd.foot.data = 1;
+    sr_fwd.foot.data = SR;
 
     // SL Gait Forward
     sl_fwd.com.orientation.x = 0;
@@ -159,7 +160,7 @@ void GaitPlanner::InitializeGaits() {
     sl_fwd.il.x = -eighth_len+leg_x_separation+leg_x_offset;
     sl_fwd.il.y = half_width;
     sl_fwd.il.z = 0;
-    sl_fwd.foot.data = 2;
+    sl_fwd.foot.data = SL;
 
     // IR Gait Forward
     ir_fwd.com.orientation.x = 0;
@@ -181,7 +182,7 @@ void GaitPlanner::InitializeGaits() {
     ir_fwd.il.x = -2 * eighth_len+leg_x_separation+leg_x_offset;
     ir_fwd.il.y = half_width;
     ir_fwd.il.z = 0;
-    ir_fwd.foot.data = 3;
+    ir_fwd.foot.data = IR;
 
      // IL Gait Forward
     il_fwd.com.orientation.x = 0;
@@ -203,7 +204,7 @@ void GaitPlanner::InitializeGaits() {
     il_fwd.il.x = -4 * eighth_len+leg_x_separation+leg_x_offset;
     il_fwd.il.y = half_width;
     il_fwd.il.z = 0;
-    il_fwd.foot.data = 4;
+    il_fwd.foot.data = IL;
 
 
     halt = zeroGait();
@@ -284,36 +285,57 @@ void GaitPlanner::Frame_CB(const ros::TimerEvent& event) {
         previous_gait = next_gait;
         next_gait = gaits.front();
         gaits.pop();
-        gaits.push(previous_gait);
+        gaits.push(next_gait);
     }
 
     switch(mode){
         case still:         // Retain current position
             current_gait = zeroGait();
+            raw_gait_pub.publish(current_gait);
             break;
         case walking:       // Cycle four gaits
             current_gait = gait_lerp(previous_gait, next_gait, percent_step);
             current_gait = gait_raise_foot(current_gait);
+            raw_gait_pub.publish(current_gait);
             break;
         case crouching:     // Cycle two gaits
             current_gait = gait_lerp(previous_gait, next_gait, percent_step);
+            processed_gait_pub.publish(current_gait);
             break;
         case sitting:      // Lower back legs and cycle that position
             current_gait = gait_lerp(previous_gait, next_gait, percent_step);
+            processed_gait_pub.publish(current_gait);
             break;
         case laying_down:   // Don't command the motors
             current_gait = gait_lerp(previous_gait, next_gait, percent_step);
+            processed_gait_pub.publish(current_gait);
             break;
         case recovering:    // Do something with imu/stability data
             break;
         case manual:        // Manual leg control only update off of current leg positions
             processed_gait_pub.publish(current_gait);
-            return;
+            break;
         default:
             break;
     }
+}
 
-    raw_gait_pub.publish(current_gait);
+void GaitPlanner::walk_CB(const std_msgs::Bool::ConstPtr &walk){
+    #if DEBUG_GAIT_EXECUTOR
+    debug((std::string)__func__+" Executing...");
+    #endif
+    if(!walk->data)
+        return;
+    mode = walking;
+    delta_percent = 0.02;
+    percent_step = 0;
+    while(!gaits.empty()) gaits.pop();
+
+    previous_gait = current_gait;
+    gaits.push(sr_fwd);
+    gaits.push(il_fwd);
+    gaits.push(sl_fwd);
+    gaits.push(ir_fwd);
 }
 
 void GaitPlanner::crouch_CB(const std_msgs::Bool::ConstPtr &crouch){
@@ -495,51 +517,6 @@ Gait GaitPlanner::gait_raise_foot(Gait gait) {
         }
     }
     return gait;
-}
-
-std::vector<Gait> GaitPlanner::walk(double dist) {
-    std::vector<Gait> gait_vector;
-    double steps_to_take = dist / ((center_to_back + center_to_front) / 4);
-    int steps_taken = 0;
-    
-    while (steps_taken < steps_to_take) {
-        switch(step) {
-            case WalkMode::Halt: {
-                gait_vector.push_back(il_fwd);
-                step = WalkMode::SR; //Next Step
-            }
-            break;
-
-            case WalkMode::SR: {
-                gait_vector.push_back(sr_fwd);
-                step = WalkMode::IL;
-            }
-            break;
-
-            case WalkMode::SL: {
-                gait_vector.push_back(sl_fwd);
-                step = WalkMode::IR;
-            }
-            break;
-
-            case WalkMode::IR: {
-                gait_vector.push_back(ir_fwd);
-                step = WalkMode::SR;
-            }
-            break;
-
-            case WalkMode::IL: {
-                gait_vector.push_back(il_fwd);
-                step = WalkMode::SL;
-            }
-            break;
-
-            default:
-            break;
-        }
-        steps_taken++;
-    }
-    return gait_vector;
 }
 
 std::vector<Gait> GaitPlanner::turn(double rad) {
