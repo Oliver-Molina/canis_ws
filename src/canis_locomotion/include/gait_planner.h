@@ -104,7 +104,6 @@ class GaitPlanner {
         ros::Publisher raw_gait_pub;
         ros::Publisher processed_gait_pub;
         ros::Publisher debug_pub;
-        ros::Publisher test_leg_position_pub;
 
         ros::Subscriber vel_sub;
         ros::Subscriber reset_sub;
@@ -116,7 +115,6 @@ class GaitPlanner {
 
     
         std_msgs::String debug_msg;
-        std_msgs::String test_leg_position_msg;
         geometry_msgs::Pose pose_command;
         geometry_msgs::Pose pose_current;
 

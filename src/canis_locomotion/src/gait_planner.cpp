@@ -42,12 +42,13 @@ GaitPlanner::GaitPlanner(const ros::NodeHandle &nh_private_) {
     sit_sub = nh_.subscribe<std_msgs::Bool>("/sit", 10, &GaitPlanner::sit_CB, this);
     lay_down_sub = nh_.subscribe<std_msgs::Bool>("/layDown", 10, &GaitPlanner::lay_down_CB, this);
     walk_sub = nh_.subscribe<std_msgs::Bool>("/walk", 10, &GaitPlanner::walk_CB, this);
+    manual_position_sub = nh_.subscribe<std_msgs::String>("/manual_leg_position", 10, &GaitPlanner::manual_position_CB, this);
+
 
     // Publishers
     raw_gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/raw", 1000);
     processed_gait_pub = nh_.advertise<robot_core::Gait>("/command/gait/processed", 1000);
     debug_pub = nh_.advertise<std_msgs::String>("/debug", 1000);
-    test_leg_position_pub = nh_.advertise<std_msgs::String>("/test_leg_position", 1000);
 
     // #### Robot Params ####
     nh_.param<double>("/shoulder_length", shoulder_length, 0.055);
@@ -300,20 +301,19 @@ void GaitPlanner::Frame_CB(const ros::TimerEvent& event) {
             break;
         case crouching:     // Cycle two gaits
             current_gait = gait_lerp(previous_gait, next_gait, percent_step);
-            processed_gait_pub.publish(current_gait);
+            raw_gait_pub.publish(current_gait);
             break;
         case sitting:      // Lower back legs and cycle that position
             current_gait = gait_lerp(previous_gait, next_gait, percent_step);
-            processed_gait_pub.publish(current_gait);
+            raw_gait_pub.publish(current_gait);
             break;
         case laying_down:   // Don't command the motors
             current_gait = gait_lerp(previous_gait, next_gait, percent_step);
-            processed_gait_pub.publish(current_gait);
+            raw_gait_pub.publish(current_gait);
             break;
         case recovering:    // Do something with imu/stability data
             break;
         case manual:        // Manual leg control only update off of current leg positions
-            processed_gait_pub.publish(current_gait);
             break;
         default:
             break;
@@ -350,28 +350,31 @@ void GaitPlanner::crouch_CB(const std_msgs::Bool::ConstPtr &crouch){
     percent_step = 0;
     while(!gaits.empty()) gaits.pop();
 
-    Gait low;
-    low.sr.x = -0.05;
-    low.sl.x = -0.05;
-    low.ir.x = -0.05;
-    low.il.x = -0.05;
+    Gait low = zeroGait();
+    low.sr.x = center_to_front+leg_x_offset;
+    low.sl.x = center_to_front+leg_x_offset;
+    low.ir.x = -center_to_back+leg_x_separation+leg_x_offset;
+    low.il.x = -center_to_back+leg_x_separation+leg_x_offset;
 
-    low.sr.y = -0.05;
-    low.sl.y = 0.05;
-    low.ir.y = -0.05;
-    low.il.y = 0.05;
+    low.sr.y = -body_width / 2.0 - shoulder_length;
+    low.sl.y = body_width / 2.0 + shoulder_length;
+    low.ir.y = -body_width / 2.0 - shoulder_length;
+    low.il.y = body_width / 2.0 + shoulder_length;
 
-    low.sr.z = -0.12;
-    low.sl.z = -0.12;
-    low.ir.z = -0.12;
-    low.il.z = -0.12;
+    low.sr.z = 0;
+    low.sl.z = 0;
+    low.ir.z = 0;
+    low.il.z = 0;
+    
+    low.com.position.x = 0;
+    low.com.position.y = 0;
+    low.com.position.z = walking_z/2;
 
     Gait high = low;
 
-    high.sr.z = -0.14;
-    high.sl.z = -0.14;
-    high.ir.z = -0.14;
-    high.il.z = -0.14;
+    high.com.position.x = 0;
+    high.com.position.y = 0;
+    high.com.position.z = walking_z;
 
     previous_gait = current_gait;
     gaits.push(high);
@@ -391,21 +394,26 @@ void GaitPlanner::sit_CB(const std_msgs::Bool::ConstPtr &sit){
     while(!gaits.empty()) gaits.pop();
     // rostopic pub /manual_position std_msgs/String "0 -0.15 -0.055 -0.15"
 
-    Gait sit_gait;
-    sit_gait.sr.x = -0.15;
-    sit_gait.sl.x = -0.15;
-    sit_gait.ir.x = -0.0;
-    sit_gait.il.x = -0.0;
+    Gait sit_gait = zeroGait();
+    sit_gait.sr.x = 0.25*center_to_front+leg_x_offset;
+    sit_gait.sl.x = 0.25*center_to_front+leg_x_offset;
+    sit_gait.ir.x = -center_to_back+leg_x_separation+leg_x_offset;
+    sit_gait.il.x = -center_to_back+leg_x_separation+leg_x_offset;
 
-    sit_gait.sr.y = -0.05;
-    sit_gait.sl.y = 0.05;
-    sit_gait.ir.y = -0.05;
-    sit_gait.il.y = 0.05;
+    sit_gait.sr.y = -body_width / 2.0 - shoulder_length;
+    sit_gait.sl.y = body_width / 2.0 + shoulder_length;
+    sit_gait.ir.y = -body_width / 2.0 - shoulder_length;
+    sit_gait.il.y = body_width / 2.0 + shoulder_length;
 
-    sit_gait.sr.z = -0.15;
-    sit_gait.sl.z = -0.15;
-    sit_gait.ir.z = -0.09;
-    sit_gait.il.z = -0.09;
+    sit_gait.sr.z = -walking_z / 3;
+    sit_gait.sl.z = -walking_z / 3;
+    sit_gait.ir.z = walking_z / 3;
+    sit_gait.il.z = walking_z / 3;
+
+    sit_gait.com.position.x = 0;
+    sit_gait.com.position.y = 0;
+    sit_gait.com.position.z = walking_z;
+    
     previous_gait = current_gait;
     gaits.push(sit_gait);
     
@@ -421,23 +429,23 @@ void GaitPlanner::lay_down_CB(const std_msgs::Bool::ConstPtr &lay_down){
     delta_percent = 0.015;
     percent_step = 0;
     while(!gaits.empty()) gaits.pop();
-    Gait lay_down_gait;
+    Gait lay_down_gait = zeroGait();
     //rostopic pub /manual_position std_msgs/String "1 0.045 0.055 -0.06"
 
-    lay_down_gait.sr.z = -0.06;
-    lay_down_gait.sl.z = -0.06;
-    lay_down_gait.ir.z = -0.06;
-    lay_down_gait.il.z = -0.06;
+    lay_down_gait.sr.z = walking_z / 3;
+    lay_down_gait.sl.z = walking_z / 3;
+    lay_down_gait.ir.z = walking_z / 3;
+    lay_down_gait.il.z = walking_z / 3;
 
-    lay_down_gait.sr.x = 0.045;
-    lay_down_gait.sl.x = 0.045;
-    lay_down_gait.ir.x = 0.045;
-    lay_down_gait.il.x = 0.045;
+    lay_down_gait.sr.x = (1.5 * center_to_front)+leg_x_offset;
+    lay_down_gait.sl.x = (1.5 * center_to_front)+leg_x_offset;
+    lay_down_gait.ir.x = (-0.75 * center_to_back) + leg_x_separation+leg_x_offset;
+    lay_down_gait.il.x = (-0.75 * center_to_back) + leg_x_separation+leg_x_offset;
 
-    lay_down_gait.sr.y = -0.055;
-    lay_down_gait.sl.y = 0.055;
-    lay_down_gait.ir.y = -0.055;
-    lay_down_gait.il.y = 0.055;
+    lay_down_gait.sr.y = -body_width / 2.0 - shoulder_length;
+    lay_down_gait.sl.y = body_width / 2.0 + shoulder_length;
+    lay_down_gait.ir.y = -body_width / 2.0 - shoulder_length;
+    lay_down_gait.il.y = body_width / 2.0 + shoulder_length;
 
     previous_gait = current_gait;
     gaits.push(lay_down_gait);
@@ -450,40 +458,6 @@ void GaitPlanner::manual_position_CB(const std_msgs::String::ConstPtr& test_leg_
     mode = manual;
     delta_percent = 0;
     percent_step = 0;
-    std::string data = test_leg_position_msg->data;
-    std::regex rgx("^([0-3]) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+)"); // fix the regex maybe.
-    std::smatch base_match;
-    if(!std::regex_match(data,base_match,rgx)){
-        debug("Failed to match String.");
-        return;
-    }
-    Point point;
-    int leg  = std::stoi(base_match[1].str());
-    point.x = std::stod(base_match[2].str());
-    point.y = std::stod(base_match[3].str());
-    point.z = std::stod(base_match[4].str());
-    std::stringstream stream;
-    stream<<"Setting Leg "<<base_match[1]<<" to position X: "<<base_match[2]<<" Y: "<<base_match[3]<<" Z: "<<base_match[4];
-    debug(stream.str());
-    while(!gaits.empty()) gaits.pop();
-    switch(leg){
-        case superior_right:
-            current_gait.sr = point;
-            break;
-        case superior_left:
-            current_gait.sl = point;
-            break;
-        case inferior_right:
-            current_gait.ir = point;
-            break;
-        case inferior_left:
-            current_gait.il = point;
-            break;
-        default:
-            break;
-
-    }
-    gaits.push(current_gait);
 }
 
 

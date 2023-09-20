@@ -49,6 +49,8 @@ class GaitExecutor {
          */
         void Processed_Gait_CB(const robot_core::Gait::ConstPtr& gait);
 
+        void manual_position_CB(const std_msgs::String::ConstPtr &leg_position);
+
         /**
          * Takes a point centered on the body's origin and recenters it on the origin of a given leg.
          * @param point The current point centered on the body
@@ -136,6 +138,7 @@ class GaitExecutor {
 
         ros::Subscriber raw_gait_sub;
         ros::Subscriber normalized_gait_sub;
+        ros::Subscriber manual_position_sub;
 
         geometry_msgs::PointStamped sr_msg;
         geometry_msgs::PointStamped sl_msg;

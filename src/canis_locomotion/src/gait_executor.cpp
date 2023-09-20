@@ -17,7 +17,7 @@
 // sl leg: Point
 // ir leg: Point
 // il leg: Point
-#define DEBUG_GAIT_EXECUTOR 1
+#define DEBUG_GAIT_EXECUTOR 0
 #define DEBUG_LEG_POSITIONS 0
 
 
@@ -30,6 +30,7 @@ GaitExecutor::GaitExecutor(const ros::NodeHandle &nh_private_) {
     
     raw_gait_sub = nh_.subscribe<robot_core::Gait>("/command/gait/raw", 1000, &GaitExecutor::Raw_Gait_CB, this);
     normalized_gait_sub = nh_.subscribe<robot_core::Gait>("/command/gait/processed", 1000, &GaitExecutor::Processed_Gait_CB, this);
+    manual_position_sub = nh_.subscribe<std_msgs::String>("/manual_leg_position", 10, &GaitExecutor::manual_position_CB, this);
 
     sr_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/leg/pos/superior/right", 1000);
     sl_pub = nh_.advertise<geometry_msgs::PointStamped>("/command/leg/pos/superior/left", 1000);
@@ -327,6 +328,45 @@ void GaitExecutor::print_gait(Gait gait) {
     debug(values_vec, "COM: x: |, y: |, z: |\nSR: x: |, y: |, z: |\nSL x: |, y: |, z: |\nIR: x: |, y: |, z: | \nIL: x: |, y: |, z: | ");
     #endif
 
+}
+
+void GaitExecutor::manual_position_CB(const std_msgs::String::ConstPtr& test_leg_position_msg){
+    #if DEBUG_GAIT_EXECUTOR
+    debug((std::string)__func__+" Executing...");
+    #endif
+    std::string data = test_leg_position_msg->data;
+    std::regex rgx("^([0-3]) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+) (\\-[\\d]+.[\\d]+|[\\d]+.[\\d]+|\\-[\\d]+|[\\d]+)"); // fix the regex maybe.
+    std::smatch base_match;
+    if(!std::regex_match(data,base_match,rgx)){
+        debug("Failed to match String.");
+        return;
+    }
+    Point point;
+    int leg  = std::stoi(base_match[1].str());
+    point.x = std::stod(base_match[2].str());
+    point.y = std::stod(base_match[3].str());
+    point.z = std::stod(base_match[4].str());
+    std::stringstream stream;
+    stream<<"Setting Leg "<<base_match[1]<<" to position X: "<<base_match[2]<<" Y: "<<base_match[3]<<" Z: "<<base_match[4];
+    debug(stream.str());
+    switch(leg){
+        case superior_right:
+            gait_out.sr = point;
+            break;
+        case superior_left:
+            gait_out.sl = point;
+            break;
+        case inferior_right:
+            gait_out.ir = point;
+            break;
+        case inferior_left:
+            gait_out.il = point;
+            break;
+        default:
+            break;
+
+    }
+    Command_Body();
 }
 
 /*
