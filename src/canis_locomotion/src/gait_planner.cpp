@@ -94,6 +94,7 @@ Gait GaitPlanner::zeroGait() {
     out.com.orientation.y = 0;
     out.com.orientation.z = 0;
     out.com.orientation.w = 1;
+    out.foot.data =  Halt;
 
     return out;
 }
@@ -117,96 +118,39 @@ geometry_msgs::Pose GaitPlanner::zeroPose() {
 // Standard Gaits: SR, SL, IR, IL, Halt
 void GaitPlanner::InitializeGaits() {
     double half_width = body_width / 2 + shoulder_length;
-    double eighth_len = (center_to_front + center_to_back) / 8;
+    double eigth_length = (center_to_front + center_to_back)/8;
 
     // SR Gait Forward
-    sr_fwd.com.orientation.x = 0;
-    sr_fwd.com.orientation.y = 0;
-    sr_fwd.com.orientation.z = 0;
-    sr_fwd.com.orientation.w = 1;
-    sr_fwd.com.position.x = 0;
-    sr_fwd.com.position.y = 0;
-    sr_fwd.com.position.z = walking_z;
-    sr_fwd.sr.x = eighth_len+leg_x_offset;
-    sr_fwd.sr.y = -half_width;
-    sr_fwd.sr.z = 0;
-    sr_fwd.sl.x = 3 * eighth_len+leg_x_offset;
-    sr_fwd.sl.y = half_width;
-    sr_fwd.sl.z = 0;
-    sr_fwd.ir.x = -eighth_len+leg_x_separation+leg_x_offset;
-    sr_fwd.ir.y = -half_width;
-    sr_fwd.ir.z = 0;
-    sr_fwd.il.x = -3 * eighth_len+leg_x_separation+leg_x_offset;
-    sr_fwd.il.y = half_width;
-    sr_fwd.il.z = 0;
+    sr_fwd = zeroGait();
+    sr_fwd.sr.x += eigth_length;
+    sr_fwd.sl.x -= eigth_length;
+    sr_fwd.ir.x += eigth_length;
+    sr_fwd.il.x -= eigth_length;
     sr_fwd.foot.data = SR;
 
-    // SL Gait Forward
-    sl_fwd.com.orientation.x = 0;
-    sl_fwd.com.orientation.y = 0;
-    sl_fwd.com.orientation.z = 0;
-    sl_fwd.com.orientation.w = 1;
-    sl_fwd.com.position.x = 0;
-    sl_fwd.com.position.y = 0;
-    sl_fwd.com.position.z = walking_z;
-    sl_fwd.sr.x = 3 * eighth_len+leg_x_offset;
-    sl_fwd.sr.y = -half_width;
-    sl_fwd.sr.z = 0;
-    sl_fwd.sl.x = eighth_len+leg_x_offset;
-    sl_fwd.sl.y = half_width;
-    sl_fwd.sl.z = 0;
-    sl_fwd.ir.x = -3 * eighth_len+leg_x_separation+leg_x_offset;
-    sl_fwd.ir.y = -half_width;
-    sl_fwd.ir.z = 0;
-    sl_fwd.il.x = -eighth_len+leg_x_separation+leg_x_offset;
-    sl_fwd.il.y = half_width;
-    sl_fwd.il.z = 0;
-    sl_fwd.foot.data = SL;
-
-    // IR Gait Forward
-    ir_fwd.com.orientation.x = 0;
-    ir_fwd.com.orientation.y = 0;
-    ir_fwd.com.orientation.z = 0;
-    ir_fwd.com.orientation.w = 1;
-    ir_fwd.com.position.x = 0;
-    ir_fwd.com.position.y = 0;
-    ir_fwd.com.position.z = walking_z;
-    ir_fwd.sr.x = 2 * eighth_len+leg_x_offset;
-    ir_fwd.sr.y = -half_width;
-    ir_fwd.sr.z = 0;
-    ir_fwd.sl.x = 4 * eighth_len+leg_x_offset;
-    ir_fwd.sl.y = half_width;
-    ir_fwd.sl.z = 0;
-    ir_fwd.ir.x = -4 * eighth_len+leg_x_separation+leg_x_offset;
-    ir_fwd.ir.y = -half_width;
-    ir_fwd.ir.z = 0;
-    ir_fwd.il.x = -2 * eighth_len+leg_x_separation+leg_x_offset;
-    ir_fwd.il.y = half_width;
-    ir_fwd.il.z = 0;
-    ir_fwd.foot.data = IR;
-
-     // IL Gait Forward
-    il_fwd.com.orientation.x = 0;
-    il_fwd.com.orientation.y = 0;
-    il_fwd.com.orientation.z = 0;
-    il_fwd.com.orientation.w = 1;
-    il_fwd.com.position.x = 0;
-    il_fwd.com.position.y = 0;
-    il_fwd.com.position.z = walking_z;
-    il_fwd.sr.x = 4 * eighth_len+leg_x_offset;
-    il_fwd.sr.y = -half_width;
-    il_fwd.sr.z = 0;
-    il_fwd.sl.x = 2 * eighth_len+leg_x_offset;
-    il_fwd.sl.y = half_width;
-    il_fwd.sl.z = 0;
-    il_fwd.ir.x = -2 * eighth_len+leg_x_separation+leg_x_offset;
-    il_fwd.ir.y = -half_width;
-    il_fwd.ir.z = 0;
-    il_fwd.il.x = -4 * eighth_len+leg_x_separation+leg_x_offset;
-    il_fwd.il.y = half_width;
-    il_fwd.il.z = 0;
+    // IL Gait Forward
+    il_fwd = zeroGait();
+    il_fwd.sr.x += 0;
+    il_fwd.sl.x -= 2*eigth_length;
+    il_fwd.ir.x += 0;
+    il_fwd.il.x += 2*eigth_length;
     il_fwd.foot.data = IL;
 
+    // SL Gait Forward
+    sl_fwd = zeroGait();
+    sl_fwd.sr.x -= eigth_length;
+    sl_fwd.sl.x += eigth_length;
+    sl_fwd.ir.x -= eigth_length;
+    sl_fwd.il.x += eigth_length;
+    sl_fwd.foot.data = SL;
+
+     // IR Gait Forward
+    ir_fwd = zeroGait();
+    ir_fwd.sr.x -= 2*eigth_length;
+    ir_fwd.sl.x += 0;
+    ir_fwd.ir.x += 2*eigth_length;
+    ir_fwd.il.x += 0;
+    ir_fwd.foot.data = IR;
 
     halt = zeroGait();
 
@@ -277,7 +221,6 @@ void GaitPlanner::Frame_CB(const ros::TimerEvent& event) {
     #if DEBUG_GAIT_EXECUTOR
     debug((std::string)__func__+" Executing...");
     #endif
-    debug(std::to_string(delta_percent));
 
     // Increment percent step according to velocity & operating frequency
     percent_step += delta_percent;
@@ -285,8 +228,11 @@ void GaitPlanner::Frame_CB(const ros::TimerEvent& event) {
         percent_step = 0;
         previous_gait = next_gait;
         next_gait = gaits.front();
+        print_gait(next_gait);
         gaits.pop();
         gaits.push(next_gait);
+        next_gait.com.position.x += (center_to_back + center_to_front)/8;
+        current_gait.com.position.x = 0;
     }
 
     switch(mode){
@@ -297,6 +243,7 @@ void GaitPlanner::Frame_CB(const ros::TimerEvent& event) {
         case walking:       // Cycle four gaits
             current_gait = gait_lerp(previous_gait, next_gait, percent_step);
             current_gait = gait_raise_foot(current_gait);
+            print_gait(current_gait);
             raw_gait_pub.publish(current_gait);
             break;
         case crouching:     // Cycle two gaits
@@ -466,22 +413,22 @@ Gait GaitPlanner::gait_raise_foot(Gait gait) {
     debug((std::string)__func__+" Executing...");
     #endif
     switch (gait.foot.data) {
-        case 1: {
+        case SR: {
             double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
             gait.sr.z += desired_z;
             break; 
         }
-        case 2: {
+        case SL: {
             double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
             gait.sl.z += desired_z;
             break; 
         }
-        case 3: {
+        case IR: {
             double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
             gait.ir.z += desired_z;
             break; 
         }
-        case 4: {
+        case IL: {
             double desired_z = -step_height*4*(percent_step)*(percent_step - 1);
             gait.il.z += desired_z;
             break; 
@@ -637,6 +584,7 @@ void GaitPlanner::print_gait(Gait gait) {
     values_vec.push_back(gait.com.position.x); 
     values_vec.push_back(gait.com.position.y); 
     values_vec.push_back(gait.com.position.z);
+    values_vec.push_back(gait.foot.data);
 
     std::vector<double> values_vec_sr;
     values_vec.push_back(gait.sr.x);
@@ -658,7 +606,7 @@ void GaitPlanner::print_gait(Gait gait) {
     values_vec.push_back(gait.il.y);
     values_vec.push_back(gait.il.z);
 
-    debug(values_vec, "COM: x: |, y: |, z: |\nSR: x: |, y: |, z: |\nSL x: |, y: |, z: |\nIR: x: |, y: |, z: | \nIL: x: |, y: |, z: | ");
+    debug(values_vec, "COM: x: |, y: |, z: | FOOT: |\nSR: x: |, y: |, z: |\nSL x: |, y: |, z: |\nIR: x: |, y: |, z: | \nIL: x: |, y: |, z: | ");
 
 }
 
