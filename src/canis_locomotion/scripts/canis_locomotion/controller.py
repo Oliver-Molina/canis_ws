@@ -1,19 +1,31 @@
 #!/usr/bin/env python
 
 import rospy
+
 from std_msgs.msg import String, Float64
 from geometry_msgs.msg import TwistStamped
 from nav_msgs.msg import Odometry
-from robot_core.msg import PathQuat
+from robot_core.msg import Gait, GaitVec, PathQuat
+
+import tkinter
+from tkinter import *
+import numpy as np 
+import matplotlib.pyplot as plt
 
 vel = TwistStamped()
-
 path = PathQuat()
 odom0 = Odometry()
 odom1 = Odometry()
 
-vel_pub = rospy.Publisher('/command/velocity', TwistStamped, queue_size=10)
-path_pub = rospy.Publisher('/command/path', PathQuat, queue_size=10)
+rosComms = RosCommunicationWrapper()
+
+mainWindow = Tk()
+mainWindow.title("Canis Control Panel")
+mainWindow.geometry("1024x768")
+
+# Button Callbacks
+
+# Subscriber Callbacks
 
 def dist_cb(dist):
 
@@ -26,14 +38,14 @@ def dist_cb(dist):
     path.poses.append(odom0)
     path.poses.append(odom1)
     
-    vel_pub.publish(vel)
-    path_pub.publish(path)
+    rosComms.velocityPub.publish(vel)
+    rosComms.pathPub.publish(path)
 
 
 def main():
     rospy.init_node('controller', anonymous=True)
     rospy.Subscriber("/test/command/dist", Float64, dist_cb)
-    rospy.spin()
+    mainWindow.mainloop()
 
 if __name__ == '__main__':
     try:
