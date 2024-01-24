@@ -4,3 +4,6 @@
 /devel
 /logs
 /.vscode
+__pycache__
+*.pyc
+*.pyo
