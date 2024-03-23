@@ -10,6 +10,7 @@ import canis_controller.RosCommunication as RosCommunication
 import canis_controller.canisBody as canisBody
 
 import tkinter as tk
+from tkinter import ttk
 import numpy as np 
 import matplotlib.pyplot as plt
 
@@ -76,10 +77,25 @@ class CanisUI(tk.Tk):
         # ROS Communication Publishers
         self.rosComms = RosCommunication.RosCommunicationWrapper()
 
-        self.buttonCallbacks = self.ButtonCallbacks(self, self.body, self.rosComms)
+        ttk.Style().configure('TNotebook', tabposition='sw')
+        self.tabControl = ttk.Notebook(self)
+
+        controllerTab = ttk.Frame(self.tabControl)
+        xyTab = ttk.Frame(self.tabControl)
+        xzTab = ttk.Frame(self.tabControl)
+        yzTab = ttk.Frame(self.tabControl)
+
+        self.tabControl.add(controllerTab, text="Controller")
+        self.tabControl.add(xyTab, text="X-Y")
+        self.tabControl.add(xzTab, text="X-Z")
+        self.tabControl.add(yzTab, text="Y-Z")
+
+        self.tabControl.pack(expand = 1, fill = "both")
+
+        self.buttonCallbacks = self.ButtonCallbacks(controllerTab, self.body, self.rosComms)
         self.buttonCallbacks.initialize()
 
-        self.subscriberCallbacks = self.SubscriberCallbacks(self, self.body, self.rosComms)
+        self.subscriberCallbacks = self.SubscriberCallbacks(controllerTab, self.body, self.rosComms)
         self.subscriberCallbacks.initialize()
 
 def main():
