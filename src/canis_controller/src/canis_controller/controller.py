@@ -10,7 +10,7 @@ import canis_controller.RosCommunication as RosCommunication
 import canis_controller.canisBody as canisBody
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, LabelFrame, scrolledtext
 import numpy as np 
 import matplotlib.pyplot as plt
 
@@ -77,10 +77,14 @@ class CanisUI(tk.Tk):
         # ROS Communication Publishers
         self.rosComms = RosCommunication.RosCommunicationWrapper()
 
-        ttk.Style().configure('TNotebook', tabposition='sw')
+        notebookStyle = ttk.Style()
+        notebookStyle.configure('TNotebook', tabposition='sw')
+        controllerStyle = ttk.Style()
+        controllerStyle.configure("mCntrl.TFrame", background="white")
+
         self.tabControl = ttk.Notebook(self)
 
-        controllerTab = ttk.Frame(self.tabControl)
+        controllerTab = ttk.Frame(self.tabControl, style="mCntrl.TFrame")
         xyTab = ttk.Frame(self.tabControl)
         xzTab = ttk.Frame(self.tabControl)
         yzTab = ttk.Frame(self.tabControl)
@@ -89,13 +93,28 @@ class CanisUI(tk.Tk):
         self.tabControl.add(xyTab, text="X-Y")
         self.tabControl.add(xzTab, text="X-Z")
         self.tabControl.add(yzTab, text="Y-Z")
-
         self.tabControl.pack(expand = 1, fill = "both")
 
-        self.buttonCallbacks = self.ButtonCallbacks(controllerTab, self.body, self.rosComms)
+        controlsFrame = LabelFrame(controllerTab, text="Controls", padx=15, pady=15)
+        controlsFrame.grid(row=0, column=0, sticky="nsew")
+
+        self.buttonCallbacks = self.ButtonCallbacks(controlsFrame, self.body, self.rosComms)
         self.buttonCallbacks.initialize()
 
-        self.subscriberCallbacks = self.SubscriberCallbacks(controllerTab, self.body, self.rosComms)
+        logFrame = LabelFrame(controllerTab, text="ROS Log", padx=15, pady=15)
+        logFrame.grid(row=0, column=1, sticky='nsew')
+
+        logScreen = scrolledtext.ScrolledText(logFrame, wrap=tk.WORD, width=40, height=8)
+        logScreen.grid(row=0, column=0, padx=15, pady=15, sticky='nsew')
+        
+        logFrame.rowconfigure(0, weight=1)
+        logFrame.columnconfigure(0, weight=1)
+
+        controllerTab.rowconfigure(0, weight=1)
+        controllerTab.columnconfigure(0, weight=1)
+        controllerTab.columnconfigure(1, weight=1)
+
+        self.subscriberCallbacks = self.SubscriberCallbacks(logFrame, self.body, self.rosComms)
         self.subscriberCallbacks.initialize()
 
 def main():
