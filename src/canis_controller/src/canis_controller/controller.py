@@ -30,6 +30,12 @@ class CanisUI(tk.Tk):
             self.velocityButton.pack()
 
         def velocityPubPressed(self):
+            velocity = self.velocityTextBox.get("1.0","end-1c")
+            if not velocity.replace(".", "").isnumeric():
+                return
+
+            self.body.vel = TwistStamped()
+            self.body.vel.twist.linear.x = float(velocity)
             self.rosComms.velocityPub.publish(self.body.vel)
 
     class SubscriberCallbacks:
