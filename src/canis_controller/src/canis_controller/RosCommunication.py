@@ -15,5 +15,5 @@ class RosCommunicationWrapper:
         self.sitPub = rospy.Publisher('/sit', Bool, queue_size=self.publisherQueueSize)
         self.layDownPub = rospy.Publisher('/layDown', Bool, queue_size=self.publisherQueueSize)
         self.walkPub = rospy.Publisher('/walk', Bool, queue_size=self.publisherQueueSize)
-        self.manualLegPub = rospy.Publisher('/manual_leg_position', Bool, queue_size=self.publisherQueueSize)
+        self.manualLegPub = rospy.Publisher('/manual_leg_position', String, queue_size=self.publisherQueueSize)
 
